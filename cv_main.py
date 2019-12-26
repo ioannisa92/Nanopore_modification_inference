@@ -61,15 +61,15 @@ def fold_training(kmer_train,
     model.compile(loss='mean_squared_error', optimizer=Adam())
  
     # training model and testing performance
-    train_hist = model.fit([X_train,gcn_filters_train],pA_train, batch_size=128, epochs=500, verbose=1)
+    train_hist = model.fit([X_train,gcn_filters_train],pA_train, batch_size=128, epochs=1, verbose=1)
     test_pred = model.predict([X_test, gcn_filters_test]).flatten()
     
     #calculating metrics
-    r, _ = stats.pearsonr(pA_test, test_pred)
-    r2 = r2_score(pas_test, test_pred)
+    r, _ = pearsonr(pA_test, test_pred)
+    r2 = r2_score(pA_test, test_pred)
     rmse(test_pred, pA_test)
     
-    return r, r2, rmse
+    return train_hist, r, r2, rmse
 
 if __name__ == "__main__":
 
@@ -109,10 +109,11 @@ if __name__ == "__main__":
                 pA_train = pA_train_mat[i]
                 pA_test = pA_test_mat[i]
                 
-                foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test)
+                train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test)
                 cv_res[key]['r'] += [foldr]
                 cv_res[key]['r2'] += [foldr2]
-                cv_res[key]['rmse'] += [fold_rmse]                 
+                cv_res[key]['rmse'] += [fold_rmse]
+                cv_res[key]['train_history']  = train_hist             
 
         np.save('./results/cv_results.npy', cv_res)
 
@@ -136,9 +137,10 @@ if __name__ == "__main__":
                 pA_train = pA_train_mat[i]
                 pA_test = pA_test_mat[i]
 
-                foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test)
+                train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test)
                 kmer_cv_res[key]['r'] = foldr
                 kmer_cv_res[key]['r2'] = foldr2
                 kmer_cv_res[key]['rmse'] = fold_rmse
+                kmer_cv_res[key]['train_history']  = train_hist
         
         np.save('./results/kmer_cv_results.npy', kmer_cv_res)
