@@ -79,13 +79,13 @@ def tune_model(A, X, Y,
     return history
 
 
-def train_model(X, Y, model, filters, batch_size=128, validation_split=0.4, epochs=100):
+def train_model(X, Y, model, filters, batch_size=128, validation_split=0.1, epochs=100):
     '''
     train model
     ''' 
     model.compile(loss='mean_squared_error', optimizer=Adam())
-    model.fit([X, filters], Y, batch_size=batch_size, validation_split=validation_split, epochs=epochs, verbose=0)
-    return model
+    history = model.fit([X, filters], Y, batch_size=batch_size, validation_split=validation_split, epochs=epochs, verbose=0)
+    return history.history, model
 
 
 def fit_model(X, model, filters):
