@@ -58,8 +58,8 @@ def cv_folds(X, Y, folds=5):
     pA_test_mat: mat, shape(folds, test_size) for each train/test split
     '''
 
-    test_sizes = np.arange(0,1,0.1)[1:] #excluding zero
-
+    #test_sizes = np.arange(0,1,0.1)[1:] #excluding zero
+    test_sizes = [0.75, 0.5, 0.25]
 
     for test_size in test_sizes:
 

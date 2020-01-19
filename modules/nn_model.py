@@ -8,6 +8,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+import tensorflow as tf
 #imports
 
 
@@ -52,6 +53,11 @@ def initialize_model(X, filters,
     #flatten and dense
     
     model = Model(inputs=[X_shape, filters_shape], outputs=output)
+    if tf.test.is_gpu_available():
+        print("GPUs available! YAY")
+        from keras.utils import multi_gpu_model
+        model = multi_gpu_model(model, gpus=-1)
+
     return model
 
 
@@ -84,7 +90,7 @@ def train_model(X, Y, model, filters, batch_size=128, validation_split=0.1, epoc
     train model
     ''' 
     model.compile(loss='mean_squared_error', optimizer=Adam())
-    history = model.fit([X, filters], Y, batch_size=batch_size, validation_split=validation_split, epochs=epochs, verbose=0)
+    history = model.fit([X, filters], Y, batch_size=batch_size, validation_split=validation_split, epochs=epochs, verbose=1)
     return history.history, model
 
 

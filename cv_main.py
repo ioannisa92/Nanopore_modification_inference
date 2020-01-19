@@ -117,7 +117,7 @@ if __name__ == "__main__":
 
         cv_res = {}
     
-        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=100),total=10):
+        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=50),total=10):
             train_size = 1-test_size
     
             key = str(round(train_size,1))+'-'+str(round(test_size,1))
