@@ -120,7 +120,7 @@ if __name__ == "__main__":
         for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=50),total=10):
             train_size = 1-test_size
     
-            key = str(round(train_size,1))+'-'+str(round(test_size,1))
+            key = str(round(train_size,2))+'-'+str(round(test_size,2))
         
             cv_res[key] = {'r':[], 'r2':[],'rmse':[]}
  
@@ -136,7 +136,7 @@ if __name__ == "__main__":
                 cv_res[key]['r'] += [foldr]
                 cv_res[key]['r2'] += [foldr2]
                 cv_res[key]['rmse'] += [(fold_rmse/kmer_test.shape[0])] #normalizing for number of samples in the test set.
-                cv_res[key]['train_history']  = train_hist.history             
+                cv_res[key]['train_history_'+key] = train_hist.history             
 
         np.save('./results/cv_results.npy', cv_res)
 
@@ -164,7 +164,7 @@ if __name__ == "__main__":
                 kmer_cv_res[key_]['r'] = foldr
                 kmer_cv_res[key_]['r2'] = foldr2
                 kmer_cv_res[key_]['rmse'] = fold_rmse #not normalizing here because test size is always the same: 1076
-                kmer_cv_res[key_]['train_history']  = train_hist.history
+                kmer_cv_res[key_]['train_history_'+key_] = train_hist.history
                 
                 
         np.save('./results/kmer_cv_results.npy', kmer_cv_res)

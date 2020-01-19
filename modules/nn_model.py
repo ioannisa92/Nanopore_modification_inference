@@ -56,7 +56,7 @@ def initialize_model(X, filters,
     if tf.test.is_gpu_available():
         print("GPUs available! YAY")
         from keras.utils import multi_gpu_model
-        model = multi_gpu_model(model, gpus=-1)
+        model = multi_gpu_model(model, gpus=2)
 
     return model
 

@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 from modules.kmer_cv import *
 from modules import kmer_chemistry
 from modules.nn_model import *
