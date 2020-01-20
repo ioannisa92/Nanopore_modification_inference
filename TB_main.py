@@ -35,11 +35,11 @@ A, X = kmer_chemistry.get_AX_matrix(smiles, ['C', 'N', 'O', 'P'], 133)
 filters = initialize_filters(A)
 model = initialize_model(X, filters, 4, 4, 4, 4, 0.2)
 #training history 
-results, model = train_model(X, pA_list, model, filters, validation_split=0.1, epochs=1)
+results, model = train_model(X, pA_list, model, filters, validation_split=0.1, epochs=350)
 
 #predicting on all data
-pA_pred = model.predict([X, filters])
+pA_pred = model.predict([X, filters]).flatten()
 pred_rmse = rmse(pA_list, pA_pred)
-
+print(pred_rmse)
 results["pred_rmse"] = pred_rmse
-np.save("./results/theoretical_best_test.npy", results)
+np.save("./results/theoretical_best.npy", results)

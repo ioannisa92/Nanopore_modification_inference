@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+# Author: Ioannis Anastopoulos
+# Date: 01/19/2020
 
 import argparse
 from modules import kmer_chemistry
@@ -117,7 +119,7 @@ if __name__ == "__main__":
 
         cv_res = {}
     
-        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=50),total=10):
+        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=50),total=6):
             train_size = 1-test_size
     
             key = str(round(train_size,2))+'-'+str(round(test_size,2))
@@ -135,7 +137,7 @@ if __name__ == "__main__":
                 train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
                 cv_res[key]['r'] += [foldr]
                 cv_res[key]['r2'] += [foldr2]
-                cv_res[key]['rmse'] += [(fold_rmse/kmer_test.shape[0])] #normalizing for number of samples in the test set.
+                cv_res[key]['rmse'] += [fold_rmse] 
                 cv_res[key]['train_history_'+key] = train_hist.history             
 
         np.save('./results/cv_results.npy', cv_res)
