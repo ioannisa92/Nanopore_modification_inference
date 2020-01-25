@@ -1,5 +1,7 @@
+#! /usr/bin/env python
+
 from rdkit import Chem
-from IPython.display import SVG
+#from IPython.display import SVG
 from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 from collections import defaultdict

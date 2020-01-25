@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Prefix name of job with user and timestamp
+  name: $USER
+  namespace: stuartlab
+spec:
+  backoffLimit: 0
+  # Delete the log after a minute
+  ttlSecondsAfterFinished: 60
+  template:
+    spec:
+      containers:
+      - name: magic
+        image: $DOCKERHUB_ACCOUNT/gcn_env:latest
+        imagePullPolicy: Always
+        env:
+        - name: USER
+          value: $USER
+        - name: PRP
+          value: "https://s3.nautilus.optiputer.net"
+        - name: MYDATA
+          value: /data/
+        - name: MYOUT # outdir pod, defined by the docker image
+          value: /results/
+        - name: S3DATA
+          value: users/ianastop/data/
+        - name: S3OUT
+          value: users/ianastop/out/ 
+        volumeMounts:
+        - mountPath: /data
+          name: ianastop-storage
+        - mountPath: /root/.aws/
+          name: s3-credentials
+          readOnly: true
+        - mountPath: /out
+          name: ianastop-out
+        resources:
+          requests:
+            cpu: "10"
+            nvidia.com/gpu: 2
+            memory: "120G"
+            ephemeral-storage: "50G"
+          limits:
+            cpu: "11"
+            nvidia.com/gpu: 2
+            memory: "170G"
+            ephemeral-storage: "60G"
+        #command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_kmer_cv_results.npy"]
+        command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_cv_results.npy" ]# test script
+      restartPolicy: Never
+      volumes:
+      - name: ianastop-storage
+        emptyDir: {}
+      - name: ianastop-out
+        emptyDir: {}  
+      - name: s3-credentials
+        secret:
+          secretName: new-prp

@@ -1,3 +1,8 @@
+#! /usr/bin/env python3
+import os
+print(os.getcwd())
+print(os.listdir(os.getcwd()))
+
 from modules.kmer_cv import *
 from modules import kmer_chemistry
 from modules.nn_model import *
@@ -5,7 +10,6 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 #imports
-
 
 '''
 Script trains on all data of the 9.4 dna model and test on all data.
@@ -38,8 +42,8 @@ model = initialize_model(X, filters, 4, 4, 4, 4, 0.2)
 results, model = train_model(X, pA_list, model, filters, validation_split=0.1, epochs=350)
 
 #predicting on all data
-pA_pred = model.predict([X, filters]).flatten()
+pA_pred = model.predict([X, filters])
 pred_rmse = rmse(pA_list, pA_pred)
-print(pred_rmse)
+
 results["pred_rmse"] = pred_rmse
 np.save("./results/theoretical_best.npy", results)

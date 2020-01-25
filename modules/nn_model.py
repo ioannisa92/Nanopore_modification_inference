@@ -12,6 +12,7 @@ import tensorflow as tf
 #imports
 
 
+
 def initialize_filters(A):
     '''
     initaite filters
@@ -57,6 +58,7 @@ def initialize_model(X, filters,
         print("GPUs available! YAY")
         from keras.utils import multi_gpu_model
         model = multi_gpu_model(model, gpus=2)
+    
 
     return model
 

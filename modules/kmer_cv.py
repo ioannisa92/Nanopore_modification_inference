@@ -162,7 +162,7 @@ def base_folds(kmer_list, pA_list):
 
 
 if __name__ == "__main__":
-
+    # for testing
     fn = "../ont_models/r9.4_180mv_450bps_6mer_DNA.model"
 
     kmer_list, pA_list = kmer_parser(fn)
