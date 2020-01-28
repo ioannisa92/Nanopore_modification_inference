@@ -1,11 +1,18 @@
 run-job:
 	# Run a kubernetes job with our image, prefix with USERNAME
 	envsubst < job.yml | kubectl create -f -
-
-delete-all:
+run-pod:
+	# Run a kubernetes pod from pod.yml
+	envsubst < pod.yml | kubectl create -f -
+delete-pod:
+	# Delete specific pod
+	kubectl delete pod ${pod}
+delete-alljobs:
 	# Delete all jobs
 	kubectl delete jobs --all
-
+delete-job:
+	# Delete specific pod
+	kubectl delete jobs ${job}
 get-pods:
 	# Get all pods
 	kubectl get pods
@@ -15,16 +22,12 @@ get-jobs:
 	kubectl get jobs
 
 kube-bash:
-	# Runs bash within the pod: pod name always includes $USER
-	# WARNING: one POD needs to be running
-	# TODO: add support for specifying POD ID
-	POD=$$(kubectl get pods -o name --no-headers=true); \
-	echo pod found:$$POD; \
-	kubectl exec -it $$POD -- /bin/bash
+	# Runs bash within specified pod
+	kubectl exec -it ${pod} -- /bin/bash
 kube-log:
 	# logs for pod
-	POD=$$(kubectl get pods -o name --no-headers=true); \
-	kubectl logs -f $$POD
+	
+	kubectl logs -f ${pod}
 docker-make:
 	# Make docker image and push
 	sudo docker build -t ${img} . 
@@ -33,5 +36,12 @@ docker-make:
 	sudo docker push ${DOCKERHUB_USERNAME}/${img}:${version}
 monitor:
 	# Run nvidia monitor in a loop to monitor GPU usage
-	kubectl exec -it $(USER)-pod -- nvidia-smi --loop=5
-
+	kubectl exec -it ${pod} -- nvidia-smi --loop=5
+cp-run:
+	# Copies the script and runs in on the pod-maybe?
+	# DOES NOT WORK
+	envsubst < pod.yml | kubectl create -f - ; \
+	kubectl wait --for=condition=running pod/${pod} --timeout=120s; \
+	kubectl cp ${script} stuartlab/${pod}:/root && \
+		kubectl exec -it ${pod} -- python ${script}
+    
