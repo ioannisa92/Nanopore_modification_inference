@@ -145,8 +145,8 @@ if __name__ == "__main__":
 
 
 
-    local_out = str(os.environ['MYOUT']) # see job.yml for env definition
-    #local_out = "./results/"
+    #local_out = str(os.environ['MYOUT']) # see job.yml for env definition
+    #local_out = "/results/"
 
     kmer_list, pA_list = kmer_parser(fn)
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     
             key = str(round(train_size,2))+'-'+str(round(test_size,2))
         
-            cv_res[key] = {'r':[], 'r2':[],'rmse':[]}
+            cv_res[key] = {'r':[], 'r2':[],'rmse':[], 'train_kmers':[],'test_kmers':[], 'train_labels':[], 'test_labels':[]}
  
             for i in range(kmer_train_mat.shape[0]):
                 
@@ -175,10 +175,10 @@ if __name__ == "__main__":
                 cv_res[key]['rmse'] += [fold_rmse] 
 
                 cv_res[key]['train_history']  = train_hist.history             
-                cv_res[key]['train_kmers'] += kmer_train
-                cv_res[key]['test_kmers'] += kmer_test
-                cv_res[key]['train_labels'] += pA_train
-                cv_res[key]['test_labels'] += pA_test
+                cv_res[key]['train_kmers'] += [kmer_train]
+                cv_res[key]['test_kmers'] += [kmer_test]
+                cv_res[key]['train_labels'] += [pA_train]
+                cv_res[key]['test_labels'] += [pA_test]
 
         np.save('.'+local_out+out, cv_res) #this will go to /results/
 
