@@ -169,7 +169,7 @@ if __name__ == "__main__":
                 pA_train = pA_train_mat[i]
                 pA_test = pA_test_mat[i]
                 
-                #train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
+                train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
                 cv_res[key]['r'] += [foldr]
                 cv_res[key]['r2'] += [foldr2]
                 cv_res[key]['rmse'] += [fold_rmse] 
