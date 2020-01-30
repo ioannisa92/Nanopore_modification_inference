@@ -1,9 +1,6 @@
 run-job:
 	# Run a kubernetes job with our image, prefix with USERNAME
 	envsubst < job.yml | kubectl create -f -
-run-pod:
-	# Run a kubernetes pod from pod.yml
-	envsubst < pod.yml | kubectl create -f -
 delete-pod:
 	# Delete specific pod
 	kubectl delete pod ${pod}

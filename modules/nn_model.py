@@ -11,7 +11,11 @@ import json
 import tensorflow as tf
 #imports
 
-
+def get_available_gpus():
+    # Counts the number of available GPUs
+    import subprocess
+    n = str(subprocess.check_output(["nvidia-smi", "-L"])).count('UUID')
+    return n 
 
 def initialize_filters(A):
     '''
@@ -54,10 +58,11 @@ def initialize_model(X, filters,
     #flatten and dense
     
     model = Model(inputs=[X_shape, filters_shape], outputs=output)
-    if tf.test.is_gpu_available():
+    if get_available_gpus()>=2:
         print("GPUs available! YAY")
         from keras.utils import multi_gpu_model
-        model = multi_gpu_model(model, gpus=2)
+        model = multi_gpu_model(model, gpus=get_available_gpus())
+    
     
 
     return model

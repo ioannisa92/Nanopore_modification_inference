@@ -38,16 +38,17 @@ spec:
           name: ianastop-out
         resources:
           requests:
-            cpu: "10"
-            nvidia.com/gpu: 2
-            memory: "120G"
+            cpu: "5"
+            nvidia.com/gpu: 1
+            memory: "100G"
             ephemeral-storage: "50G"
           limits:
-            cpu: "11"
-            nvidia.com/gpu: 2
-            memory: "170G"
+            cpu: "6"
+            nvidia.com/gpu: 1
+            memory: "120G"
             ephemeral-storage: "60G"
         #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model","dna_cv_results.npy"]
+        #command: ["bash", "combined_cv_wrap.sh", "1", "combined_cv_results.npy"]
         #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_cv_results.npy" ]
         command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_kmer_cv_results.npy" ]
       restartPolicy: Never

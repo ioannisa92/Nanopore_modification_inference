@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import ShuffleSplit,StratifiedShuffleSplit
 import numpy as np
 '''
 Script will generate cross validation folds in two ways:
@@ -29,7 +29,10 @@ def kmer_parser(fn):
     with open(fn ,'r') as f:
         lines = f.readlines()
         for line in lines:
-            line = line.split('\t')
+            if '\t' in line:
+                line = line.split('\t')
+            elif ' ' in line:
+                line = line.split(' ')
             kmer = str(line[0]).strip()
             pA = float(line[1].strip())
             kmer_list += [kmer]
@@ -37,7 +40,38 @@ def kmer_parser(fn):
 
     return np.array(kmer_list), np.array(pA_list)
 
-def cv_folds(X, Y, folds=5):
+def cg_mg_combine():
+    '''
+    Function combines native and methylated kmers
+    
+    Returns
+    -------
+    all_data: np matrix - all kmers both native and methylated
+    all_pA: np matrix - all pA measures from both native and methylated kmers
+    all_labels = np matrix - denotes what kind of kmer exists in each index
+    '''
+    cg = "./ont_models/r9.4_180mv_450bps_6mer_DNA.model"
+    mg = "./ont_models/r9.4_450bps.mpg.6mer.template.model"
+
+    cg_kmer, cg_pA = kmer_parser(cg)
+    mg_kmer, mg_pA = kmer_parser(mg)
+
+    cg_kmer = cg_kmer.reshape(-1,1)
+    cg_pA = cg_pA.reshape(-1,1)
+    mg_kmer = mg_kmer.reshape(-1,1)
+    mg_pA = mg_pA.reshape(-1,1)
+
+    cg_labels = np.array(cg_kmer.shape[0]*[0]).reshape(-1,1)
+    mg_labels = np.array(mg_kmer.shape[0]*[1]).reshape(-1,1)
+
+
+    all_data = np.vstack([cg_kmer, mg_kmer])
+    all_pA = np.vstack([cg_pA, mg_pA])
+    all_labels = np.vstack([cg_labels, mg_labels])
+
+    return all_data, all_pA, all_labels
+
+def cv_folds(X, Y,labels=None, folds=5):
     '''
     Function takes in a kmer_list and returns cv fold indeces.
     An array of test_sizes ranging from 0.1-0.9 is made
@@ -46,7 +80,8 @@ def cv_folds(X, Y, folds=5):
     Parameters
     -----------
     X: array, list of kmers
-    Y: array, list of the pA of those kmers
+    Y: array, list of the pA of those kmers, meaninf target values to predict
+    labels: array, list of labels to be used for stratified split
     folds, int, number of CV folds to be made
 
     Returns
@@ -71,16 +106,19 @@ def cv_folds(X, Y, folds=5):
 
         pA_train_mat = []
         pA_test_mat = []
-
-        splitter = ShuffleSplit(n_splits=folds, test_size=test_size, random_state=42).split(X)
+        
+        if labels is not None:
+            splitter = StratifiedShuffleSplit(n_splits=folds, test_size=test_size, random_state=42).split(X, labels) 
+        else:
+            splitter = ShuffleSplit(n_splits=folds, test_size=test_size, random_state=42).split(X)
 
         for train_idx, test_idx in (splitter):
 
-            x_train = X[train_idx]
-            x_test = X[test_idx]
+            x_train = X[train_idx].flatten()
+            x_test = X[test_idx].flatten()
 
-            y_train = Y[train_idx]
-            y_test = Y[test_idx]
+            y_train = Y[train_idx].flatten()
+            y_test = Y[test_idx].flatten()
 
             kmer_train_mat += [x_train]
             kmer_test_mat += [x_test]
@@ -166,6 +204,13 @@ if __name__ == "__main__":
     # for testing
     fn = "../ont_models/r9.4_180mv_450bps_6mer_DNA.model"
 
+    all_data, all_pA, all_labels = cg_mg_combine()
+    for test_size,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in cv_folds(all_data, all_pA, labels=all_labels, folds=5):
+        print(kmer_train_mat.shape)
+        print(kmer_test_mat.shape)
+        print(pA_train_mat.shape)
+        print(pA_test_mat.shape)
+    '''    
     kmer_list, pA_list = kmer_parser(fn)
     for kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in cv_folds(kmer_list, pA_list):
         print(kmer_train_mat.shape)
@@ -181,3 +226,4 @@ if __name__ == "__main__":
 
         print(kmer_train_mat[0])
         print(kmer_test_mat[0])
+    '''
