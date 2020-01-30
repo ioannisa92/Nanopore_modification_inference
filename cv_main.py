@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
 
 
-    #local_out = str(os.environ['MYOUT']) # see job.yml for env definition
+    local_out = str(os.environ['MYOUT']) # see job.yml for env definition
     #local_out = "/results/"
 
     kmer_list, pA_list = kmer_parser(fn)
