@@ -145,8 +145,10 @@ if __name__ == "__main__":
     all_kmers, all_pA, all_labels = cg_mg_combine()
 
     cv_res = {}
+    
+    test_sizes = [0.9,0.75, 0.5, 0.25, 0.1]
 
-    for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(all_kmers,all_pA,labels = all_labels, folds=50),total=6):
+    for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(all_kmers,all_pA,labels = all_labels, folds=50),total=len(test_sizes)):
         train_size = 1-test_size
 
         key = str(round(train_size,2))+'-'+str(round(test_size,2))

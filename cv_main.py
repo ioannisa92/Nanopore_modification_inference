@@ -160,10 +160,11 @@ if __name__ == "__main__":
     kmer_list, pA_list = kmer_parser(fn)
 
     if cv:
-
+        test_sizes = [0.9,0.75, 0.5, 0.25, 0.1, 0.05, 0.01]
+        
         cv_res = {}
     
-        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=50),total=6):
+        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=50),total=len(test_sizes)):
             train_size = 1-test_size
     
             key = str(round(train_size,2))+'-'+str(round(test_size,2))
