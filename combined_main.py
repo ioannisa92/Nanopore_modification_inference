@@ -11,6 +11,8 @@ from sklearn.metrics import r2_score
 from scipy.stats import pearsonr
 import tqdm
 import os
+from keras import backend as K
+from keras.callbacks import EarlyStopping
 #imports
 
 def rmse(y_true, y_pred):
@@ -79,6 +81,7 @@ def fold_training(kmer_train,
     pA_train: numpy mat; training taget values of pA for kmers in kmer_train set
     pA_test: numpy mat; test target values of pA for kmers in kmer_test set
     val_split: int; percent of data to use as validation set during training
+    callbacks: bool; whether to use callbacks in training
 
     Returns
     --------
@@ -102,6 +105,7 @@ def fold_training(kmer_train,
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
     if callbacks:
+        print('using callbakcs..')
         callbacks = [EarlyStopping(monitor='loss', min_delta=0.01, patience=10, verbose=1, mode='min', baseline=None, restore_best_weights=False)]
     else:
         callbacks = None
@@ -114,7 +118,9 @@ def fold_training(kmer_train,
     r, _ = pearsonr(pA_test, test_pred)
     r2 = r2_score(pA_test, test_pred)
     rmse_score = rmse(test_pred, pA_test)
-
+    
+    # clearing session to avoid adding unwanted nodes on TF graph
+    K.clear_session()
     return train_hist, r, r2, rmse_score
 
 if __name__ == "__main__":

@@ -82,6 +82,7 @@ def fold_training(kmer_train,
     pA_test: numpy mat; test target values of pA for kmers in kmer_test set
     val_split: int; percent of data to use as validation set during training
     callbacks: bool; whether to use callbacks in training
+
     Returns
     --------
     train_hist: dict; dictionary of training loss or validation loss if selected
