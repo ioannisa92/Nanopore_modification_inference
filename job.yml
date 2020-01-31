@@ -3,7 +3,7 @@ kind: Job
 metadata:
   # Prefix name of job with user and timestamp
   #name: $USER
-  name: rna.kmer.cv
+  name: rna.cv
   namespace: stuartlab
 spec:
   backoffLimit: 0
@@ -49,8 +49,8 @@ spec:
             ephemeral-storage: "60G"
         #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model","dna_cv_results.npy"]
         #command: ["bash", "combined_cv_wrap.sh", "1", "combined_cv_results.npy"]
-        #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_cv_results.npy" ]
-        command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_kmer_cv_results.npy" ]
+        command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_cv_results.npy" ]
+        #command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_kmer_cv_results.npy" ]
       restartPolicy: Never
       volumes:
       - name: ianastop-storage

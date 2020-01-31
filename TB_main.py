@@ -3,7 +3,7 @@ import os
 print(os.getcwd())
 print(os.listdir(os.getcwd()))
 
-from modules.kmer_cv import *
+from modules.cv_utils import *
 from modules import kmer_chemistry
 from modules.nn_model import *
 from collections import defaultdict

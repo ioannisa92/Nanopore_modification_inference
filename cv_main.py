@@ -3,7 +3,7 @@
 import argparse
 from modules import kmer_chemistry
 from modules.nn_model import *
-from modules.kmer_cv import *
+from modules.cv_utils import *
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,6 +11,7 @@ from sklearn.metrics import r2_score
 from scipy.stats import pearsonr
 import tqdm
 import os
+from keras import backend as K
 #imports
 
 def rmse(y_true, y_pred):
@@ -108,7 +109,9 @@ def fold_training(kmer_train,
     r, _ = pearsonr(pA_test, test_pred)
     r2 = r2_score(pA_test, test_pred)
     rmse_score = rmse(test_pred, pA_test)
-    
+
+    # clearing session to avoid adding unwanted nodes on TF graph
+    K.clear_session()
     return train_hist, r, r2, rmse_score
 
 
@@ -141,8 +144,6 @@ if __name__ == "__main__":
         n_type='RNA'
     else:
         n_type="DNA"
-
-
 
 
     local_out = str(os.environ['MYOUT']) # see job.yml for env definition
@@ -187,7 +188,7 @@ if __name__ == "__main__":
         kmer_cv_res = {}
         base_order = ['A','T','C','G'] # order of bases in matrices below
     
-        for pos, kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(base_folds(kmer_list,pA_list),total=6):
+        for pos, kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(base_folds(kmer_list,pA_list),total=7):
             key = 'Pos%d'%pos
 
             for i in range(kmer_train_mat.shape[0]):
@@ -205,7 +206,7 @@ if __name__ == "__main__":
                 train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test)
                 kmer_cv_res[key_]['r'] = foldr
                 kmer_cv_res[key_]['r2'] = foldr2
-                kmer_cv_res[key_]['rmse'] = fold_rmse #not normalizing here because test size is always the same: 1076
+                kmer_cv_res[key_]['rmse'] = fold_rmse 
                 kmer_cv_res[key_]['train_history']  = train_hist.history
                 
                 

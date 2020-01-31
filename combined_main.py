@@ -3,7 +3,7 @@
 import argparse
 from modules import kmer_chemistry
 from modules.nn_model import *
-from modules.kmer_cv import *
+from modules.cv_utils import *
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
