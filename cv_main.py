@@ -12,6 +12,7 @@ from scipy.stats import pearsonr
 import tqdm
 import os
 from keras import backend as K
+from keras.callbacks import EarlyStopping
 #imports
 
 def rmse(y_true, y_pred):
@@ -65,7 +66,8 @@ def fold_training(kmer_train,
                     kmer_test,
                     pA_train,
                     pA_test,
-                    val_split=0):
+                    val_split=0,
+                    callbacks=False):
     
     '''
     Function takes in train and test matrices and fits a new randomly initialized model.
@@ -79,7 +81,7 @@ def fold_training(kmer_train,
     pA_train: numpy mat; training taget values of pA for kmers in kmer_train set
     pA_test: numpy mat; test target values of pA for kmers in kmer_test set
     val_split: int; percent of data to use as validation set during training
-
+    callbacks: bool; whether to use callbacks in training
     Returns
     --------
     train_hist: dict; dictionary of training loss or validation loss if selected
@@ -100,9 +102,14 @@ def fold_training(kmer_train,
     elif n_type=="RNA":
         model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=4, kernal_size_cnn=4, n_dense=4)
     model.compile(loss='mean_squared_error', optimizer=Adam())
+
+    if callbacks:
+        callbacks = [EarlyStopping(monitor='loss', min_delta=0.01, patience=10, verbose=1, mode='min', baseline=None, restore_best_weights=False)]
+    else:
+        callbacks = None
  
     # training model and testing performance
-    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=350, verbose=verbosity)
+    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=350, verbose=verbosity, callbacks=callbacks)
     test_pred = model.predict([X_test, gcn_filters_test]).flatten()
     
     #calculating metrics
@@ -175,13 +182,14 @@ if __name__ == "__main__":
                 cv_res[key]['r2'] += [foldr2]
                 cv_res[key]['rmse'] += [fold_rmse] 
 
-                cv_res[key]['train_history']  = train_hist.history             
+                cv_res[key]['train_history']  += [train_hist.history]        
                 cv_res[key]['train_kmers'] += [kmer_train]
                 cv_res[key]['test_kmers'] += [kmer_test]
                 cv_res[key]['train_labels'] += [pA_train]
                 cv_res[key]['test_labels'] += [pA_test]
 
         np.save('.'+local_out+out, cv_res) #this will go to /results/
+
 
     if kmer_cv:
         

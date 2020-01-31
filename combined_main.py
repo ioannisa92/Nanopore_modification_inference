@@ -127,7 +127,8 @@ if __name__ == "__main__":
     global n_type
     n_type = "DNA"
 
-    local_out = str(os.environ['MYOUT']) # see job.yml for env definition
+    #local_out = str(os.environ['MYOUT']) # see job.yml for env definition
+    local_out = '/results/'
 
     all_kmers, all_pA, all_labels = cg_mg_combine()
 
@@ -138,7 +139,7 @@ if __name__ == "__main__":
 
         key = str(round(train_size,2))+'-'+str(round(test_size,2))
 
-        cv_res[key] = {'r':[], 'r2':[],'rmse':[]}
+        cv_res[key] = {'r':[], 'r2':[],'rmse':[], 'train_kmers':[], 'test_kmers':[], 'train_labels':[], 'test_labels':[]}
 
         for i in range(kmer_train_mat.shape[0]):
 
@@ -148,13 +149,14 @@ if __name__ == "__main__":
             pA_train = pA_train_mat[i]
             pA_test = pA_test_mat[i]
 
-            train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
-            cv_res[key]['r'] += [foldr]
-            cv_res[key]['r2'] += [foldr2]
-            cv_res[key]['rmse'] += [(fold_rmse/kmer_test.shape[0])] #normalizing for number of samples in the test set.
-            cv_res[key]['train_history']  = train_hist.history
-            cv_res[key]['train_kmers'] = kmer_train
-            cv_res[key]['test_kmers'] = kmer_test
-            cv_res[key]['train_labels'] = pA_train
+            #train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
+            #cv_res[key]['r'] += [foldr]
+            #cv_res[key]['r2'] += [foldr2]
+            #cv_res[key]['rmse'] += [(fold_rmse/kmer_test.shape[0])] #normalizing for number of samples in the test set.
+            #cv_res[key]['train_history']  += [train_hist.history]
+            cv_res[key]['train_kmers'] += [kmer_train]
+            cv_res[key]['test_kmers'] += [kmer_test]
+            cv_res[key]['train_labels'] += [pA_train]
+            cv_res[key]['test_labels'] += [pA_test]
     
     np.save('.'+local_out+out, cv_res) #this will go to /results/

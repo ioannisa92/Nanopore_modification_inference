@@ -94,7 +94,7 @@ def cv_folds(X, Y,labels=None, folds=5):
     '''
 
     #test_sizes = np.arange(0,1,0.1)[1:] #excluding zero
-    test_sizes = [0.9,0.75, 0.5, 0.25, 0.1, 0.05, 0.01]
+    test_sizes = [0.9, 0.88, 0.75, 0.5, 0.25, 0.1]
     
 
     for test_size in test_sizes:
