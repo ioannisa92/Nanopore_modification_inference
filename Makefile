@@ -34,6 +34,9 @@ docker-make:
 monitor:
 	# Run nvidia monitor in a loop to monitor GPU usage
 	kubectl exec -it ${pod} -- nvidia-smi --loop=5
+docker-delete-none:
+	sudo docker images | grep none | awk '{ print $3; }' | xargs docker rmi
+
 cp-run:
 	# Copies the script and runs in on the pod-maybe?
 	# DOES NOT WORK

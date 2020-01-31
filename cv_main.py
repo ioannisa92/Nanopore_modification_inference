@@ -168,7 +168,7 @@ if __name__ == "__main__":
     
             key = str(round(train_size,2))+'-'+str(round(test_size,2))
         
-            cv_res[key] = {'r':[], 'r2':[],'rmse':[], 'train_kmers':[],'test_kmers':[], 'train_labels':[], 'test_labels':[]}
+            cv_res[key] = {'r':[], 'r2':[],'rmse':[], "train_history":[],'train_kmers':[],'test_kmers':[], 'train_labels':[], 'test_labels':[]}
  
             for i in range(kmer_train_mat.shape[0]):
                 
