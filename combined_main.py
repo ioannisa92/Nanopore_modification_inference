@@ -64,7 +64,8 @@ def fold_training(kmer_train,
                     kmer_test,
                     pA_train,
                     pA_test,
-                    val_split=0):
+                    val_split=0,
+                    callbacks=True):
 
     '''
     Function takes in train and test matrices and fits a new randomly initialized model.
@@ -100,8 +101,13 @@ def fold_training(kmer_train,
         model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=4, kernal_size_cnn=4, n_dense=4)
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
+    if callbacks:
+        callbacks = [EarlyStopping(monitor='loss', min_delta=0.01, patience=10, verbose=1, mode='min', baseline=None, restore_best_weights=False)]
+    else:
+        callbacks = None
+
     # training model and testing performance
-    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=350, verbose=verbosity)
+    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=350, verbose=verbosity, callbacks=callbacks)
     test_pred = model.predict([X_test, gcn_filters_test]).flatten()
 
     #calculating metrics
@@ -127,8 +133,8 @@ if __name__ == "__main__":
     global n_type
     n_type = "DNA"
 
-    #local_out = str(os.environ['MYOUT']) # see job.yml for env definition
-    local_out = '/results/'
+    local_out = str(os.environ['MYOUT']) # see job.yml for env definition
+    #local_out = '/results/'
 
     all_kmers, all_pA, all_labels = cg_mg_combine()
 
@@ -149,11 +155,12 @@ if __name__ == "__main__":
             pA_train = pA_train_mat[i]
             pA_test = pA_test_mat[i]
 
-            #train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
-            #cv_res[key]['r'] += [foldr]
-            #cv_res[key]['r2'] += [foldr2]
-            #cv_res[key]['rmse'] += [(fold_rmse/kmer_test.shape[0])] #normalizing for number of samples in the test set.
-            #cv_res[key]['train_history']  += [train_hist.history]
+            train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
+            cv_res[key]['r'] += [foldr]
+            cv_res[key]['r2'] += [foldr2]
+            cv_res[key]['rmse'] += [fold_rmse] 
+            
+            cv_res[key]['train_history']  += [train_hist.history]
             cv_res[key]['train_kmers'] += [kmer_train]
             cv_res[key]['test_kmers'] += [kmer_test]
             cv_res[key]['train_labels'] += [pA_train]
