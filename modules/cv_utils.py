@@ -40,6 +40,44 @@ def kmer_parser(fn):
 
     return np.array(kmer_list), np.array(pA_list)
 
+def kmer_parser_enc(fn):
+    '''
+    Function parses kmer file and returns an encoded version of the bases
+    A:0, T:1, C:2, G:3, M:4, Q:5
+
+    Parameters
+    ----------
+    fn: str, path to file
+
+    Returns
+    ----------
+    kmer_list: array, list of kmers in the order they appear in the file
+    pA_list: array, list of pA values (floats) in the same order
+    '''
+    enc = {'A':0,'T':1, 'C':2, 'G':3, 'M':4, 'Q':5}
+    
+    kmer_list = []
+    pA_list = []
+    with open(fn ,'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if '\t' in line:
+                line = line.split('\t')
+            elif ' ' in line:
+                line = line.split(' ')
+            kmer = list(str(line[0]).strip())
+            
+            pA = float(line[1].strip())
+            for i, base in enumerate(kmer):
+                kmer[i] = enc[base]
+            
+            kmer_list += [list(kmer)]
+            pA_list += [pA]
+    
+    kmer_mat = np.vstack(kmer_list)
+    
+    return kmer_mat, pA_list
+
 def cg_mg_combine():
     '''
     Function combines native and methylated kmers
@@ -203,14 +241,18 @@ def base_folds(kmer_list, pA_list):
 if __name__ == "__main__":
     # for testing
     fn = "../ont_models/r9.4_180mv_450bps_6mer_DNA.model"
-
+    kmer_mat, pa_list = kmer_parser_enc(fn)
+    print(kmer_mat[:5])
+    print(len(pa_list))
+    
+    '''
     all_data, all_pA, all_labels = cg_mg_combine()
     for test_size,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in cv_folds(all_data, all_pA, labels=all_labels, folds=5):
         print(kmer_train_mat.shape)
         print(kmer_test_mat.shape)
         print(pA_train_mat.shape)
         print(pA_test_mat.shape)
-    '''    
+        
     kmer_list, pA_list = kmer_parser(fn)
     for kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in cv_folds(kmer_list, pA_list):
         print(kmer_train_mat.shape)

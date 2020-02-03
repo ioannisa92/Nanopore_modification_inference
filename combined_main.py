@@ -128,11 +128,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script loads combined native and methylated kmers and performs 50-fold stratified cross validation")
     parser.add_argument('-o', '--OUT', default="out.npy", type=str, required=False, help='Full path for .npy file where results are saved')
     parser.add_argument('-v', '--VERBOSITY', default=0, type=int, required=False, help='Verbosity of model. Other than zero, loss per batch per epoch is printed. Default is 0, meaning nothing is printed')
+    parser.add_argument('-test_splits', '--SPLITS', nargs='+', required=False, default = np.arange(0.1,1,0.1), help='Test splits to run k-fold cross validation over')
+    parser.add_argument('-k', '--FOLDS', type=int, default=50, required=False, help='K for fold numbers in cross validation')
+    args=parser.parse_args()
     args=parser.parse_args()
     ########----------------------Command line arguments--------------------##########
 
     out = args.OUT
-
+    folds = args.FOLDS
+    test_splits = args.SPLITS
+    
     global verbosity
     verbosity = args.VERBOSITY
 
@@ -146,9 +151,8 @@ if __name__ == "__main__":
 
     cv_res = {}
     
-    test_sizes = [0.9,0.75, 0.5, 0.25, 0.1]
 
-    for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(all_kmers,all_pA,labels = all_labels, folds=50),total=len(test_sizes)):
+    for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(all_kmers,all_pA,labels = all_labels, folds=folds, test_sizes=test_splits),total=len(test_splits)):
         train_size = 1-test_size
 
         key = str(round(train_size,2))+'-'+str(round(test_size,2))
@@ -163,7 +167,7 @@ if __name__ == "__main__":
             pA_train = pA_train_mat[i]
             pA_test = pA_test_mat[i]
 
-            train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1, callbacks=True, test_sizes=test_sizes)
+            train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1, callbacks=True)
             cv_res[key]['r'] += [foldr]
             cv_res[key]['r2'] += [foldr2]
             cv_res[key]['rmse'] += [fold_rmse] 

@@ -132,6 +132,8 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--FILE', default=None, type=str, required=False, help='kmer file with pA measurement')
     parser.add_argument('-cv', '--CV', required=False, action='store_true',help='MODE: Random CV splits of variable size')
     parser.add_argument('-kmer_cv', '--KMERCV', required=False, action='store_true',help='MODE: CV splits based on position of base')
+    parser.add_argument('-test_splits', '--SPLITS', nargs='+', required=False, default = np.arange(0.1,1,0.1), help='Test splits to run k-fold cross validation over')
+    parser.add_argument('-k', '--FOLDS', type=int, default=50, required=False, help='K for fold numbers in cross validation')
     parser.add_argument('-o', '--OUT', default="out.npy", type=str, required=False, help='Full path for .npy file where results are saved')
     parser.add_argument('-v', '--VERBOSITY', default=0, type=int, required=False, help='Verbosity of model. Other than zero, loss per batch per epoch is printed. Default is 0, meaning nothing is printed')
     args=parser.parse_args()
@@ -143,8 +145,11 @@ if __name__ == "__main__":
     cv = args.CV
     kmer_cv = args.KMERCV
     out = args.OUT
+    test_splits = args.SPLITS
+    folds = args.FOLDS
+    
     global verbosity
-    verbosity = args.VERBOSITY 
+    verbosity = args.VERBOSITY  
 
     global n_type
     n_type = None
@@ -155,16 +160,14 @@ if __name__ == "__main__":
 
 
     local_out = str(os.environ['MYOUT']) # see job.yml for env definition
-    #local_out = "/results/"
 
     kmer_list, pA_list = kmer_parser(fn)
 
     if cv:
-        test_sizes = [0.9,0.75, 0.5, 0.25, 0.1, 0.05, 0.01]
         
         cv_res = {}
     
-        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=50),total=len(test_sizes)):
+        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=folds, test_sizes=test_splits),total=len(test_splits)):
             train_size = 1-test_size
     
             key = str(round(train_size,2))+'-'+str(round(test_size,2))
@@ -179,7 +182,7 @@ if __name__ == "__main__":
                 pA_train = pA_train_mat[i]
                 pA_test = pA_test_mat[i]
                 
-                train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
+                train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1, callbacks=True)
                 cv_res[key]['r'] += [foldr]
                 cv_res[key]['r2'] += [foldr2]
                 cv_res[key]['rmse'] += [fold_rmse] 
