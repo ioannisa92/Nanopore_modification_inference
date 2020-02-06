@@ -121,14 +121,14 @@ def fold_training(kmer_train,
     
     # clearing session to avoid adding unwanted nodes on TF graph
     K.clear_session()
-    return train_hist, r, r2, rmse_score
+    return train_hist, r, r2, rmse_score, test_pred
 
 if __name__ == "__main__":
     ########----------------------Command line arguments--------------------##########
     parser = argparse.ArgumentParser(description="Script loads combined native and methylated kmers and performs 50-fold stratified cross validation")
     parser.add_argument('-o', '--OUT', default="out.npy", type=str, required=False, help='Full path for .npy file where results are saved')
     parser.add_argument('-v', '--VERBOSITY', default=0, type=int, required=False, help='Verbosity of model. Other than zero, loss per batch per epoch is printed. Default is 0, meaning nothing is printed')
-    parser.add_argument('-test_splits', '--SPLITS', nargs='+', required=False, default = np.arange(0.1,1,0.1), help='Test splits to run k-fold cross validation over')
+    parser.add_argument('-test_splits', '--SPLITS', nargs='+',type=float, required=False, default = np.arange(0.1,1,0.1), help='Test splits to run k-fold cross validation over')
     parser.add_argument('-k', '--FOLDS', type=int, default=50, required=False, help='K for fold numbers in cross validation')
     args=parser.parse_args()
     args=parser.parse_args()
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     out = args.OUT
     folds = args.FOLDS
-    test_splits = args.SPLITS
+    test_splits = np.array(args.SPLITS)
     
     global verbosity
     verbosity = args.VERBOSITY
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
         key = str(round(train_size,2))+'-'+str(round(test_size,2))
 
-        cv_res[key] = {'r':[], 'r2':[],'rmse':[], "train_history":[],'train_kmers':[], 'test_kmers':[], 'train_labels':[], 'test_labels':[]}
+        cv_res[key] = {'r':[], 'r2':[],'rmse':[], "train_history":[],'train_kmers':[], 'test_kmers':[], 'train_labels':[], 'test_labels':[], 'test_pred':[]}
 
         for i in range(kmer_train_mat.shape[0]):
 
@@ -167,7 +167,7 @@ if __name__ == "__main__":
             pA_train = pA_train_mat[i]
             pA_test = pA_test_mat[i]
 
-            train_hist, foldr, foldr2, fold_rmse = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1, callbacks=True)
+            train_hist, foldr, foldr2, fold_rmse,test_pred = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1, callbacks=True)
             cv_res[key]['r'] += [foldr]
             cv_res[key]['r2'] += [foldr2]
             cv_res[key]['rmse'] += [fold_rmse] 
@@ -177,5 +177,6 @@ if __name__ == "__main__":
             cv_res[key]['test_kmers'] += [kmer_test]
             cv_res[key]['train_labels'] += [pA_train]
             cv_res[key]['test_labels'] += [pA_test]
+            cv_res[key]['test_pred'] += [test_pred]
     
     np.save('.'+local_out+out, cv_res) #this will go to /results/
