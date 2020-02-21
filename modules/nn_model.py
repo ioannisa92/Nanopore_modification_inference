@@ -8,8 +8,10 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 import json
-import tensorflow as tf
 #imports
+
+def rmse(y_true, y_pred):
+    return np.sqrt(np.mean(np.square(y_pred - y_true)))
 
 def get_available_gpus():
     # Counts the number of available GPUs
@@ -31,7 +33,7 @@ def initialize_model(X, filters,
                      n_dense=2,
                      dropout=0.2):
     '''
-    initaite model
+    initite model
     '''  
     X_shape = Input(shape=(X.shape[1], X.shape[2]))
     filters_shape = Input(shape=(filters.shape[1], filters.shape[2]))
@@ -58,10 +60,10 @@ def initialize_model(X, filters,
     #flatten and dense
     
     model = Model(inputs=[X_shape, filters_shape], outputs=output)
-    if get_available_gpus()>=2:
-        print("GPUs available! YAY")
-        from keras.utils import multi_gpu_model
-        model = multi_gpu_model(model, gpus=get_available_gpus())
+    #if get_available_gpus()>=2:
+    #    print("GPUs available! YAY")
+    #    from keras.utils import multi_gpu_model
+    #    model = multi_gpu_model(model, gpus=get_available_gpus())
     
     
 

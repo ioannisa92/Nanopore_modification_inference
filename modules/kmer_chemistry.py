@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 from rdkit import Chem
 #from IPython.display import SVG
 from rdkit.Chem import rdDepictor
@@ -133,4 +131,50 @@ def get_AX_matrix(smiles, Atms, nAtms):
         padded_X_mat = np.array(padded_X_mat)
 
         return padded_A_mat, padded_X_mat  
+
+def get_AX(kmer_list, n_type="DNA"):
+
+    '''
+    Function takes in a kmer-pA measurement lists. Kmers are converted to their SMILES representation.
+    An array of the molecular Adjacency and Feature matrices is returned
+
+    Parameters
+    -----------
+    kmer_list: list, list of  kmerse
+
+    Returns
+    ----------
+    A: mat, matrix of atom to atom connections for each kmer; shape = (n_of_molecules, n_atoms, n_atoms)
+    X mat, matrix of atom to features for each kmer; shape = (n_of_molecules, n_atoms, n_features)
+    '''
+
+    k = len(kmer_list[0])
+
+    dna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)CC1',
+            'T':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C(C)=C2)CC1',
+            'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)N=C3O)CC1',
+            'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)CC1',
+            'M':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C(C)=C2)CC1'}
+
+    rna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)C(O)C1',
+                'T':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1',
+                'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)N=C3O)C(O)C1',
+                'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)C(O)C1',
+                'Q':'OP(=O)(O)OCC1OC(C2C(=O)NC(=O)NC=2)C(O)C1'}
+
+
+    if n_type=="DNA":
+        dna_smiles = get_kmer_smiles(k, dna_base)
+        dna_smiles = [dna_smiles.get(kmer)[0] for kmer in kmer_list]
+
+        A, X = get_AX_matrix(dna_smiles, ['C', 'N', 'O', 'P'], 133)
+
+    elif n_type=="RNA":
+        rna_smiles = get_kmer_smiles(k, rna_base)
+        rna_smiles = [rna_smiles.get(kmer)[0] for kmer in kmer_list]
+
+        A, X = get_AX_matrix(rna_smiles, ['C', 'N', 'O', 'P'], 116)
+    return A,X
+
+
 #functions

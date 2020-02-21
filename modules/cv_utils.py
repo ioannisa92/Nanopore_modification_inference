@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 from sklearn.model_selection import ShuffleSplit,StratifiedShuffleSplit
 import numpy as np
 '''
@@ -11,13 +10,18 @@ Script will generate cross validation folds in two ways:
 
 
 
-def kmer_parser(fn):
+def kmer_parser(fn, exclude_base=None):
     '''
     Function parses kmer file and returns
 
     Parameters
     ----------
-    fn: str, path to file
+    fn: str
+        path to file
+    exclude_base : str
+        base to exclude from kmer_list. The base selected will
+        be removed regardless its position. All kmers containing
+        that base will not be returned
 
     Returns
     ----------
@@ -35,6 +39,9 @@ def kmer_parser(fn):
                 line = line.split(' ')
             kmer = str(line[0]).strip()
             pA = float(line[1].strip())
+            if exclude_base is not None:
+                if exclude_base in kmer:
+                    continue
             kmer_list += [kmer]
             pA_list += [pA]
 
@@ -71,12 +78,12 @@ def kmer_parser_enc(fn):
             for i, base in enumerate(kmer):
                 kmer[i] = enc[base]
             
-            kmer_list += [list(kmer)]
+            kmer_list += [kmer]
             pA_list += [pA]
     
-    kmer_mat = np.vstack(kmer_list)
+    #kmer_mat = np.vstack(kmer_list)
     
-    return kmer_mat, pA_list
+    return np.array(kmer_list), np.array(pA_list)
 
 def cg_mg_combine():
     '''
@@ -111,24 +118,39 @@ def cg_mg_combine():
 
 def cv_folds(X, Y,labels=None, folds=5, test_sizes = np.arange(0.1,1,0.1)):
     '''
-    Function takes in a kmer_list and returns cv fold indeces.
-    An array of test_sizes ranging from 0.1-0.9 is made
-    For each test size a train/test split is make for kmers and their pAs
-
     Parameters
     -----------
-    X: array, list of kmers
-    Y: array, list of the pA of those kmers, meaninf target values to predict
-    labels: array, list of labels to be used for stratified split
-    folds, int, number of CV folds to be made
+    X : array
+        list of samples
+
+    Y : array
+         list of values to predict
+
+    labels : array
+         list of labels to be used for stratified split
+
+    folds : int
+         number of CV folds to be made
+
+    test_sizes : array
+        Array to test sizes
 
     Returns
     -----------
-    kmer_train_mat: mat, shape(folds, train_size) for each train/test split
-    kmer_test_mat: mat, shape(folds, train_size) for each train/test split
+    test_size : float
 
-    pA_train_mat: mat, shape(folds, test_size) for each train/test split
-    pA_test_mat: mat, shape(folds, test_size) for each train/test split
+    kmer_train_mat : mat
+        shape(folds, train_size) for each train/test split
+
+    kmer_test_mat : mat
+        shape(folds, train_size) for each train/test split
+
+    pA_train_mat : mat
+        shape(folds, test_size) for each train/test split
+
+    pA_test_mat : mat
+        shape(folds, test_size) for each train/test split
+
     '''
 
     #test_sizes = np.arange(0,1,0.1)[1:] #excluding zero
@@ -151,24 +173,38 @@ def cv_folds(X, Y,labels=None, folds=5, test_sizes = np.arange(0.1,1,0.1)):
             splitter = ShuffleSplit(n_splits=folds, test_size=test_size, random_state=42).split(X)
 
         for train_idx, test_idx in (splitter):
+            x_train = X[train_idx]
+            x_test = X[test_idx]
 
-            x_train = X[train_idx].flatten()
-            x_test = X[test_idx].flatten()
+            y_train = Y[train_idx]
+            y_test = Y[test_idx]
 
-            y_train = Y[train_idx].flatten()
-            y_test = Y[test_idx].flatten()
-
-            kmer_train_mat += [x_train]
-            kmer_test_mat += [x_test]
+            if all(isinstance(kmer, str) for kmer in x_train):
+                print("worked")
+                x_train = x_train.flatten()
+                x_test = x_test.flatten()
+                
+                kmer_train_mat += [x_train]
+                kmer_test_mat += [x_test]
+                
+            else:
+                
+                kmer_train_mat += [np.vstack(x_train)]
+                kmer_test_mat += [np.vstack(x_test)]
 
             pA_train_mat +=[y_train]
             pA_test_mat += [y_test]
-
-        kmer_train_mat = np.vstack(kmer_train_mat)
-        kmer_test_mat = np.vstack(kmer_test_mat)
-
+        
         pA_train_mat = np.vstack(pA_train_mat)
         pA_test_mat = np.vstack(pA_test_mat)
+ 
+        if all(isinstance(kmer, str) for kmer in x_train): 
+            kmer_train_mat = np.vstack(kmer_train_mat)
+            kmer_test_mat = np.vstack(kmer_test_mat)
+        
+        else:
+            kmer_train_mat = np.array(kmer_train_mat)
+            kmer_test_mat = np.array(kmer_test_mat)
 
         yield test_size,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat
 
@@ -240,12 +276,23 @@ def base_folds(kmer_list, pA_list):
 
 if __name__ == "__main__":
     # for testing
-    fn = "../ont_models/r9.4_180mv_450bps_6mer_DNA.model"
-    kmer_mat, pa_list = kmer_parser_enc(fn)
-    print(kmer_mat[:5])
-    print(len(pa_list))
+    #fn = "../ont_models/r9.4_180mv_450bps_6mer_DNA.model"
+    fn = "../ont_models/r9.4_180mv_70bps_5mer_RNA.model"
+
+    kmer_mat1, pa_list = kmer_parser(fn, exclude_base="G")
+    kmer_mat2, pa_list = kmer_parser(fn, exclude_base="C")
+
+    print(len(set(kmer_mat1)), len(set(kmer_mat2)))
+    
+    print(len(set(kmer_mat1)|set(kmer_mat2)))
+        
     
     '''
+    for test_size,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in cv_folds(kmer_mat, pa_list, folds=10):
+        print(kmer_train_mat.shape)
+        print(kmer_test_mat.shape)
+        print(pA_train_mat.shape)
+        print(pA_test_mat.shape) 
     all_data, all_pA, all_labels = cg_mg_combine()
     for test_size,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in cv_folds(all_data, all_pA, labels=all_labels, folds=5):
         print(kmer_train_mat.shape)
