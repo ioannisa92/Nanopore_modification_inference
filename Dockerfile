@@ -70,7 +70,7 @@ COPY . /root
 #ENV PATH=$LD_LIBRARY_PATH:$PATH
 
 RUN pip install --no-cache-dir -r requirements.txt
-
+RUN mkdir results/
 #RUN apt-get update \
 # && apt-get install -yq --no-install-recommends \
 #    libboost-atomic1.67.0 \

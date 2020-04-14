@@ -2,12 +2,13 @@ from keras.models import Model
 from keras.layers import Input, Dense, Flatten, Dropout, Activation, Conv1D, MaxPooling1D, AveragePooling1D
 from keras.optimizers import Adam
 import keras.models
-from keras_deep_graph_learning.keras_dgl.layers import MultiGraphCNN
-from keras_deep_graph_learning.examples import utils
+from spectral_layers import MultiGraphCNN
+from .utils import *
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 import json
+import itertools
 #imports
 
 def rmse(y_true, y_pred):
@@ -23,7 +24,7 @@ def initialize_filters(A):
     '''
     initaite filters
     '''
-    filters = utils.preprocess_adj_tensor_with_identity(A, True)
+    filters = preprocess_adj_tensor_with_identity(A, True)
     return filters
 
 
@@ -77,8 +78,22 @@ def tune_model(A, X, Y,
                list_dropout,
                batch_size=128, validation_split=0.4, epochs=100):
     '''
-    tune model
+    Function accepts a parameter dictionary and fit the model with all possible combinations of these parameters
+    This function is optimized for multi-gpu systems. Each pair of parameters can be run on a separate gpu.
+    
+    Parameters
+    ----------
+    A : mat
+        array of adjacency matrices for kmers (N, n, n). N is number of kmers, n is number of nodes
+    X : mat
+        array of feature matrices for kmerrs (N,n,m). m is number of features
+    param_dict: dict
+        dictionary of {param: list of values}
+    
+        
     '''  
+    
+    
     history = defaultdict(list)
     for n_gcn in list_n_gcn:
         for n_cnn in list_n_cnn:

@@ -3,7 +3,7 @@ kind: Job
 metadata:
   # Prefix name of job with user and timestamp
   #name: $USER
-  name: rna.base.exclude
+  name: train
   namespace: stuartlab
 spec:
   backoffLimit: 0
@@ -38,20 +38,27 @@ spec:
           name: ianastop-out
         resources:
           requests:
-            cpu: "5"
-            nvidia.com/gpu: 2
-            memory: "60G"
+            cpu: "10"
+            nvidia.com/gpu: 1
+            memory: "15G"
             ephemeral-storage: "100G"
           limits:
-            cpu: "6"
-            nvidia.com/gpu: 2
-            memory: "70G"
+            cpu: "10"
+            nvidia.com/gpu: 1
+            memory: "20G"
             ephemeral-storage: "160G"
-        command: ["bash", "base_exclude_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model", "rna_exclude_bases_results.npy"]
-        #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model","dna_cv_0.34.npy", "0.66"]
+        command: ['python','train.py', './ont_models/r9.4_180mv_450bps_6mer_DNA.model', 'dna_model','dna_model_results']
+        #command: ["bash", "gscv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model", "10"]
+        #command: ["bash", "gscv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model", "10"]
+        #command: ["bash", "basepair_exclude_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model", "dna_exclude_basepairs_results.npy"]
+        #command: ["bash", "basepair_exclude_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model", "rna_exclude_basepairs_results.npy"]
+        #command: ["bash", "base_exclude_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model", "dna_exclude_base_repeat50times_results.npy"]
+        #command: ["bash", "base_exclude_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model", "rna_exclude_base_results.npy"]
+        #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model","dna_cv_results.npy", "0.9 0.82 0.75 0.66 0.5 0.25 0.1"]
         #command: ["bash", "combined_cv_wrap.sh", "0", "combined_cv_results.npy",  "0.9 0.75 0.5 0.25 0.1"]
-        #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_cv_results_ES.npy","0.9 0.75 0.56 0.5 0.25 0.1 0.05 0.01" ]
-        #command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_kmer_cv_results.npy" ]
+        #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_cv_results.npy","0.9 0.75 0.56 0.5 0.25 0.1 0.05 0.01" ]
+        #command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_kmer_cv_repeat50times_results.npy" ]
+        #command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model","dna_kmer_cv_repeat50times_results.npy" ]
       restartPolicy: Never
       volumes:
       - name: ianastop-storage

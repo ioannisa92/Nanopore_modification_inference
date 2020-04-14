@@ -1,5 +1,12 @@
 from sklearn.model_selection import ShuffleSplit,StratifiedShuffleSplit
 import numpy as np
+import itertools
+from .run import run_params
+from .kmer_chemistry import get_AX
+from .nn_model import initialize_model, initialize_filters
+from multiprocessing import Pool, Manager
+import os
+import boto3
 '''
 Script will generate cross validation folds in two ways:
 1 - Random 90-10, 80-20, ... splits to test how little information we need to
@@ -272,22 +279,245 @@ def base_folds(kmer_list, pA_list):
 
         yield pos, kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat
 
-
-
-if __name__ == "__main__":
-    # for testing
-    #fn = "../ont_models/r9.4_180mv_450bps_6mer_DNA.model"
-    fn = "../ont_models/r9.4_180mv_70bps_5mer_RNA.model"
-
-    kmer_mat1, pa_list = kmer_parser(fn, exclude_base="G")
-    kmer_mat2, pa_list = kmer_parser(fn, exclude_base="C")
-
-    print(len(set(kmer_mat1)), len(set(kmer_mat2)))
-    
-    print(len(set(kmer_mat1)|set(kmer_mat2)))
-        
+class GPUGSCV:
     
     '''
+    GPU enbaled grid search cross validation
+    A parameter dict is provided and for each combination of parameters k-fold cv is done
+    If multiple gpus are available, each of the parameter combinations will be done on a separate gpu
+    '''
+
+    def __init__(self,model,param_dict, cv=10, n_gpus=1,res_fn=None):
+        self.model = model # function that initializes keras model
+        self.param_dict = param_dict
+        self.original_keys = self.param_dict.keys()
+        self.cv = cv
+        self.n_gpus = n_gpus
+        self.res_fn = res_fn # path to save results, if selected res_dict will be saved after each parameter combination is done
+        self.combined_params = self._combine_params
+
+        try:
+            s3out = str(os.environ['S3OUT'])
+            local_out = str(os.environ['MYOUT'])
+            prp = str(os.environ['PRP'])
+
+            session = boto3.session.Session(profile_name="default")
+            bucket = session.resource("s3", endpoint_url=prp).Bucket("stuartlab")
+            bucket.download_file(s3out+res_fn,'.'+local_out+res_fn )
+            self.res_dict = np.load('.'+local_out+res_fn, allow_pickle=True).item()
+        except:
+            self.res_dict = {}
+
+        self.best_params = None
+        self.best_score = None
+ 
+        self.cv_results = None
+
+    
+    @property
+    def _combine_params(self):
+        '''
+        Method makes all combinations of provided list of values for all parameters
+        '''
+        list_values = self.param_dict.values()
+        
+        combined_values_list = list(itertools.product(*list_values))
+        
+        return combined_values_list
+
+    def fit(self, kmer_list,pA_list):
+       
+        manager = Manager()
+        best_score_params = manager.list() #[best_score, best_params]
+        best_score_params.append(None) # best_score float
+        best_score_params.append(None) # best_params dict
+        gpu_n = np.arange(self.n_gpus)
+        avail_gpus = manager.list(gpu_n)
+        res_dict = manager.dict()
+        res_dict.update(self.res_dict) # if self.res_dict is empty then nothing will happen
+        
+        run_params = []
+        for params in self.combined_params:
+            
+            key = dict(zip(self.original_keys,params))
+            key = str(key).replace('{', '').replace('}','')
+            if key in res_dict and len(res_dict[key]['r'])==0: # r key always updates first so if that is not updated, the rest arent either
+                continue 
+            else:   
+                run_params += [params]
+                res_dict[key] = manager.dict()
+                res_dict[key]['r'] = manager.list()
+                res_dict[key]['r2'] = manager.list()
+                res_dict[key]['rmse'] = manager.list()
+                res_dict[key]['train_history'] = manager.list()
+                res_dict[key]['train_kmers'] = manager.list()
+                res_dict[key]['test_kmers'] = manager.list()
+                res_dict[key]['train_labels'] = manager.list()
+                res_dict[key]['test_labels'] = manager.list()
+                res_dict[key]['test_pred'] = manager.list()
+                res_dict[key]['train_pred'] = manager.list()
+
+        print('testing {} combinations'.format(len(run_params))) 
+        po = Pool(len(avail_gpus))
+    
+        r = po.map_async(self.run_cv ,
+                     ((kmer_list, pA_list, params, avail_gpus,best_score_params, res_dict ) for params in run_params))
+
+        r.wait()
+        print(r.get())
+        po.close()
+        po.join()        
+
+        self.best_score = best_score_params[0]
+        self.best_params = best_score_params[1] #unclean dict
+        self.clean_up_params()
+
+        new_res_dict = {}
+        for params in res_dict.keys():
+            new_res_dict[params] = {}
+
+            for key in res_dict[params].keys():
+                new_res_dict[params][key] = list(res_dict[params][key])
+
+        self.cv_results=new_res_dict
+
+
+    def clean_up_params(self):
+        
+        wanted_keys =  list(self.original_keys)
+        new_keys = list(self.best_params.keys())
+        unwanted_params = [key for key in new_keys if key not in wanted_keys]
+        
+        for param in unwanted_params:
+            del self.best_params[param]
+    
+    def save_dict(self,res_dict):
+    
+        new_res_dict = {}
+        for drug in res_dict.keys():
+            new_res_dict[drug] = {}
+
+            for key in res_dict[drug].keys():
+                new_res_dict[drug][key] = list(res_dict[drug][key])
+
+        np.save(self.res_path, new_res_dict)
+        
+        prp = str(os.environ['PRP'])
+        local_out = str(os.environ['MYOUT'])
+        s3out = str(os.environ['S3OUT'])
+
+        np.save('.'+local_out+self.res_fn, new_res_dict)
+
+        session = boto3.session.Session(profile_name="default")
+        bucket = session.resource("s3", endpoint_url=prp).Bucket("stuartlab")
+        bucket.upload_file('.'+local_out+self.res_fn, s3out+self.res_fn)
+
+    def run_cv(self, args):
+        
+        kmer_list, pA_list, = args[0], args[1]
+        params = args[2] # tuple
+        avail_gpus = args[3]
+        best_score_params = args[4]
+        res_dict = args[5]
+   
+
+        model_params = dict(zip(self.original_keys,params))
+ 
+        print('testing params', model_params)
+        key =  str(model_params).replace('{', '').replace('}','')
+        splitter = ShuffleSplit(n_splits=self.cv, test_size=0.2, random_state=42).split(kmer_list) 
+        
+        cv_rmse = [] # list of rmses from all folds
+        
+        gpu_id = avail_gpus.pop(0) 
+        for train_idx, test_idx in splitter:
+            kmer_train = kmer_list[train_idx]
+            pA_train = pA_list[train_idx]
+
+            #kmer_test = kmer_list[test_idx]
+            #pA_test = pA_list[test_idx]
+
+            test_n = len(test_idx)
+            valid_idx = np.random.choice(test_idx, int(test_n/2),replace=False)
+            test_idx = np.array([x for x in test_idx if x not in valid_idx])
+            
+            kmer_valid = kmer_list[valid_idx]
+            pA_valid = pA_list[valid_idx]
+    
+            kmer_test = kmer_list[test_idx]
+            pA_test = pA_list[test_idx]
+            
+            assert len(kmer_train)+len(kmer_valid)+len(kmer_test) == len(kmer_list)
+            
+            # getting adj and feature matrix for smiles
+            A_train, X_train = get_AX(kmer_train)
+            gcn_filters_train = initialize_filters(A_train)
+            A_test, X_test = get_AX(kmer_test)
+            gcn_filters_test = initialize_filters(A_test)
+            A_valid, X_valid = get_AX(kmer_valid)
+            gcn_filters_valid = initialize_filters(A_valid)
+
+            model_params['X'] = X_train
+            model_params['filters'] = gcn_filters_train
+
+            model = self.model(**model_params)
+
+
+            r,r2,rmse_score, train_hist,test_pred, train_pred = run_params((model,pA_train,pA_test,pA_valid,X_train, gcn_filters_train, X_test, gcn_filters_test,X_valid, gcn_filters_valid, gpu_id))
+            
+            res_dict[key]['r'] += [r]
+            res_dict[key]['r2'] += [r2]
+            res_dict[key]['rmse'] += [rmse_score]
+
+            res_dict[key]['train_history']  += [train_hist]
+            res_dict[key]['train_kmers'] += [kmer_train]
+            res_dict[key]['test_kmers'] += [kmer_test]
+            res_dict[key]['train_labels'] += [pA_train]
+            res_dict[key]['test_labels'] += [pA_test]
+            res_dict[key]['test_pred'] += [test_pred]          
+            res_dict[key]['train_pred'] += [train_pred]
+
+            cv_rmse += [rmse_score]
+        # putting gpu back to available gpus
+        avail_gpus.append(gpu_id)
+
+        mean_rmse = np.mean(cv_rmse)
+        print('mean_rmse', mean_rmse)
+        if best_score_params[0] is None or mean_rmse < best_score_params[0]:
+            print('updating')
+            best_score_params[0] = mean_rmse
+            best_score_params[1] = model_params
+        
+        if self.res_fn is not None:
+            self.save_dict(res_dict)
+            
+
+    
+        
+    
+        
+if __name__ == "__main__":
+    # for testing
+
+    #param_dict = dict(b=[1,2,3], a=[4,5])
+
+    #c = GPUGSCV(param_dict)
+     
+    #fn = "../ont_models/r9.4_180mv_450bps_6mer_DNA.model"
+    fn = "../ont_models/r9.4_180mv_70bps_5mer_RNA.model"
+    all_kmers, all_pas = kmer_parser(fn)
+    #kmer_mat1, pa_list = kmer_parser(fn, exclude_base="G")
+    kmer_mat2, pa_list = kmer_parser(fn, exclude_base="C")
+
+    print(len(set(all_kmers)))
+    print(len(set(kmer_mat2)))
+
+    #print(len(set(kmer_mat1)), len(set(kmer_mat2)))
+
+    #print(len(set(kmer_mat1)|set(kmer_mat2)))
+        
+    ''' 
+
     for test_size,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in cv_folds(kmer_mat, pa_list, folds=10):
         print(kmer_train_mat.shape)
         print(kmer_test_mat.shape)
