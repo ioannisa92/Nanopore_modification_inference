@@ -12,6 +12,7 @@ from sklearn.metrics import r2_score
 from keras.callbacks import EarlyStopping
 from keras import backend as K
 import tensorflow as tf
+import os
 
 if __name__ == "__main__":
     ########----------------------Command line arguments--------------------##########

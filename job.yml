@@ -47,7 +47,7 @@ spec:
             nvidia.com/gpu: 1
             memory: "20G"
             ephemeral-storage: "160G"
-        command: ['python','train.py', './ont_models/r9.4_180mv_450bps_6mer_DNA.model', 'dna_model','dna_model_results']
+        command: ['bash','train_wrap.sh', './ont_models/r9.4_180mv_450bps_6mer_DNA.model', 'dna_model','dna_model_results']
         #command: ["bash", "gscv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model", "10"]
         #command: ["bash", "gscv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model", "10"]
         #command: ["bash", "basepair_exclude_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model", "dna_exclude_basepairs_results.npy"]
