@@ -11,56 +11,14 @@ from sklearn.metrics import r2_score
 from scipy.stats import pearsonr
 import tqdm
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
 from keras import backend as K
 from keras.callbacks import EarlyStopping
 #imports
 
 def rmse(y_true, y_pred):
     return np.sqrt(np.mean(np.square(y_pred - y_true)))
-
-def get_AX(kmer_list):
-
-    '''
-    Function takes in a kmer-pA measurement lists. Kmers are converted to their SMILES representation.
-    An array of the molecular Adjacency and Feature matrices is returned
-
-    Parameters
-    -----------
-    kmer_list: list, list of  kmerse
-
-    Returns
-    ----------
-    A: mat, matrix of atom to atom connections for each kmer; shape = (n_of_molecules, n_atoms, n_atoms)
-    X mat, matrix of atom to features for each kmer; shape = (n_of_molecules, n_atoms, n_features)
-    '''
-
-    k = len(kmer_list[0])
-
-    dna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)CC1',
-            'T':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C(C)=C2)CC1',
-            'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)N=C3O)CC1',
-            'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)CC1',
-            'M':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C(C)=C2)CC1'}
-
-    rna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)C(O)C1',
-                'T':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1',
-                'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)N=C3O)C(O)C1',
-                'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)C(O)C1',
-                'Q':'OP(=O)(O)OCC1OC(C2C(=O)NC(=O)NC=2)C(O)C1'}
-
-
-    if n_type=="DNA":
-        dna_smiles = kmer_chemistry.get_kmer_smiles(k, dna_base)
-        dna_smiles = [dna_smiles.get(kmer)[0] for kmer in kmer_list]
-
-        A, X = kmer_chemistry.get_AX_matrix(dna_smiles, ['C', 'N', 'O', 'P'], 133)
-
-    elif n_type=="RNA":
-        rna_smiles = kmer_chemistry.get_kmer_smiles(k, rna_base)
-        rna_smiles = [rna_smiles.get(kmer)[0] for kmer in kmer_list]
-
-        A, X = kmer_chemistry.get_AX_matrix(rna_smiles, ['C', 'N', 'O', 'P'], 116)
-    return A,X 
 
 def fold_training(kmer_train,
                     kmer_test,
@@ -91,11 +49,21 @@ def fold_training(kmer_train,
     
     '''
     # getting training and test A, X matrices, and their corresponding filters
-    A_train, X_train = get_AX(kmer_train)
+    A_train, X_train = kmer_chemistry.get_AX(kmer_train,n_type=n_type)
     gcn_filters_train = initialize_filters(A_train)
-    A_test, X_test = get_AX(kmer_test)
+    A_test, X_test = kmer_chemistry.get_AX(kmer_test,n_type=n_type)
     gcn_filters_test = initialize_filters(A_test)
-    
+   
+    gpu_id = 0
+    os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(gpu_id)
+    print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"])
+
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 0.8 #what portion of gpu to use
+
+    session = tf.Session(config=config)
+    K.set_session(session)
+ 
     # initializing model - new randomly initialized model for every fold training
     if n_type=="DNA":
         model = initialize_model(X_train, gcn_filters_train, n_gcn=5, n_cnn=1, kernal_size_cnn=10, n_dense=5, dropout=0.1)
@@ -103,10 +71,10 @@ def fold_training(kmer_train,
         model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=5, kernal_size_cnn=4, n_dense=5, dropout=0.1)
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
-    callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=50, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
+    callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=10, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
  
     # training model and testing performance
-    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=1000, verbose=verbosity, callbacks=callbacks)
+    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=500, verbose=verbosity, callbacks=callbacks)
     test_pred = model.predict([X_test, gcn_filters_test]).flatten()
     train_pred = model.predict([X_train, gcn_filters_train]).flatten()
  
@@ -129,7 +97,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--FILE', default=None, type=str, required=False, help='kmer file with pA measurement')
     parser.add_argument('-cv', '--CV', required=False, action='store_true',help='MODE: Random CV splits of variable size')
     parser.add_argument('-kmer_cv', '--KMERCV', required=False, action='store_true',help='MODE: CV splits based on position of base')
-    parser.add_argument('-test_splits', '--SPLITS', nargs='+',type=float, required=False, default = np.arange(0.1,1,0.1), help='Test splits to run k-fold cross validation over')
+    parser.add_argument('-test_splits', '--SPLITS', nargs='+',type=float, required=False, default = np.arange(0.05,1,0.05), help='Test splits to run k-fold cross validation over')
     parser.add_argument('-k', '--FOLDS', type=int, default=50, required=False, help='K for fold numbers in cross validation')
     parser.add_argument('-o', '--OUT', default="out.npy", type=str, required=False, help='Full path for .npy file where results are saved')
     parser.add_argument('-v', '--VERBOSITY', default=0, type=int, required=False, help='Verbosity of model. Other than zero, loss per batch per epoch is printed. Default is 0, meaning nothing is printed')

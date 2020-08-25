@@ -62,14 +62,14 @@ def run_model(args, val_split=0.1):
         print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"])
 
     # getting adj and feature matrix for smiles
-    A_train, X_train = get_AX(kmer_train)
+    A_train, X_train = get_AX(kmer_train, n_type=n_type)
     gcn_filters_train = initialize_filters(A_train)
-    A_test, X_test = get_AX(kmer_test)
+    A_test, X_test = get_AX(kmer_test, n_type=n_type)
     gcn_filters_test = initialize_filters(A_test)
 
     # configuring session
     config = tf.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.5 #what portion of gpu to use
+    config.gpu_options.per_process_gpu_memory_fraction = 0.8 #what portion of gpu to use
     
     session = tf.Session(config=config)
     K.set_session(session)
@@ -80,7 +80,7 @@ def run_model(args, val_split=0.1):
         model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=5, kernal_size_cnn=4, n_dense=5, dropout=0.1)
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
-    callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=25, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
+    callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=10, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
 
     # training model and testing performance
     train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=500, verbose=0, callbacks=callbacks)
@@ -151,12 +151,14 @@ def run_params(args):
     X_train, gcn_filters_train = args[4], args[5]
     X_test, gcn_filters_test = args[6], args[7]
     X_valid, gcn_filters_valid = args[8], args[9]
-    gpu_id = args[10]
+    avail_gpus = args[10]
 
-    #if len(avail_gpus)!=0: # in case no gpu_id is passed, cpu will be used
-    # read the available GPU for training
-    os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(gpu_id)
-    print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"])
+    if len(avail_gpus)!=0: # in case no gpu_id is passed, cpu will be used
+        # read the available GPU for training
+        gpu_id = avail_gpus.pop(0)
+        os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(gpu_id)
+        print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"])
+
 
     # configuring session
     config = tf.ConfigProto()
@@ -174,6 +176,8 @@ def run_params(args):
     train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_data=([X_valid,gcn_filters_valid],pA_valid), batch_size=128, epochs=500, verbose=0, callbacks=callbacks)
     test_pred = model.predict([X_test, gcn_filters_test]).flatten()
     train_pred = model.predict([X_train, gcn_filters_train]).flatten()
+    
+    avail_gpus.append(gpu_id)
 
     #calculating metrics
     r, _ = pearsonr(pA_test.flatten(), test_pred)

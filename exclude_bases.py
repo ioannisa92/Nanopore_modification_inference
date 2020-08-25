@@ -56,8 +56,10 @@ def wrap(args):
     
     c = GetTrainTest(fn, bases)
     train_kmers, train_pa = c.get_train()
+    #print(len(train_kmers))
     test_kmers, test_pa = c.get_test()
-    
+    #print(len(test_kmers))
+     
     for i in np.arange(50): 
         r,r2,rmse_score, train_hist, kmer_train, kmer_test, pA_train, pA_test, test_pred, train_pred = run_model((train_kmers, train_pa, test_kmers, test_pa, n_type, avail_gpus))
 
@@ -74,6 +76,7 @@ def wrap(args):
         res_dict[key]['train_pred'] += [train_pred]
         
         print("dict updated")
+    
 
 def main():
     ########----------------------Command line arguments--------------------##########
@@ -102,6 +105,7 @@ def main():
         
         manager = Manager()
         gpu_n = np.arange(get_available_gpus())
+        #gpu_n = np.arange(5)
         avail_gpus = manager.list(gpu_n)
         res_dict = manager.dict()
         
@@ -145,6 +149,7 @@ def main():
        
         manager = Manager()
         gpu_n = np.arange(get_available_gpus())
+        #gpu_n = np.arange(5)
         avail_gpus = manager.list(gpu_n)
         res_dict = manager.dict()
         

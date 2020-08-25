@@ -1,4 +1,5 @@
-trash/
-results/
-plots/
-saved_models/
+/trash/
+/results/
+/plots/
+/saved_models/
+/gcn_interpret_kmers/

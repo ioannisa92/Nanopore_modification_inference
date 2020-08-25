@@ -11,11 +11,9 @@ from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
 from keras.callbacks import EarlyStopping
 from keras import backend as K
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
+import os
 from modules.utils import aws_upload
-
 
 if __name__ == "__main__":
     ########----------------------Command line arguments--------------------##########
@@ -43,16 +41,13 @@ if __name__ == "__main__":
     A, X = get_AX(kmer_list, n_type=n_type)
     gcn_filters = initialize_filters(A)
 
-
-    # getting all possible {A,T,C,G,5mC,6mA}
-    test_kmer_list = gen_all_kmers(alphabet = ['A','T','C','G','M','Q'] ,repeat=6)
-    A_test, X_test = get_AX(test_kmer_list, n_type=n_type)
+    #generating all kmers (with mods) that the model will predict pA on
+    rna_kmers = gen_all_kmers(alphabet=['A','T','C','G','Q','I'], repeat=5)
+    A_test, X_test = get_AX(rna_kmers, n_type=n_type)
     gcn_filters_test = initialize_filters(A_test)
-
 
     res_dict = {}
     res_dict['train_kmers'] = []
-    res_dict['train_labels'] = []
     res_dict['test_kmers'] = []
     res_dict['train_r'] = []
     res_dict['train_r2'] = []
@@ -61,9 +56,15 @@ if __name__ == "__main__":
     res_dict['test_pred'] = []
     res_dict['train_pred'] = []
 
+    best_score=None
+    best_repeat = None
+
+    prp = str(os.environ['PRP'])
+    local_out = str(os.environ['MYOUT'])
+    s3out = str(os.environ['S3OUT'])
 
 
-    print('running model', flush=True)
+    print('running model')
     repeat = 50
     epochs = 500
     for i in range(repeat): 
@@ -88,7 +89,6 @@ if __name__ == "__main__":
         # training model and testing performance
         train_hist = model.fit([X,gcn_filters],pA_list,validation_split=0, batch_size=128, epochs=epochs, verbose=1, callbacks=callbacks)
         train_pred = model.predict([X, gcn_filters]).flatten()
-        
         test_pred = model.predict([X_test, gcn_filters_test]).flatten()
 
         #calculating metrics
@@ -96,27 +96,28 @@ if __name__ == "__main__":
         r2 = r2_score(pA_list, train_pred)
         rmse_score = rmse(pA_list, train_pred)
 
-       
         res_dict['train_kmers'] += [kmer_list]
-        res_dict['test_kmers'] += [test_kmer_list]
+        res_dict['test_kmers'] += [rna_kmers]
         res_dict['train_r'] += [r]
         res_dict['train_r2'] += [r2]
         res_dict['train_rmse'] += [rmse_score]
         res_dict['train_hist'] += [train_hist.history]
         res_dict['test_pred'] += [test_pred]
         res_dict['train_pred'] += [train_pred]
-        res_dict['train_labels'] += [pA_list]
 
-        if i==0: 
-            model_json = model.to_json()
-            with open('.'+local_out+'%s.json'%model_fn,'w') as json_file:
-                json_file.write(model_json)
+        #model_json = model.to_json()
+        #with open('.'+local_out+'%s.json'%model_fn,'w') as json_file:
+        #    json_file.write(model_json)
 
-            aws_upload('.'+local_out+'%s.json'%model_fn)
+        #model.save_weights('./results/%s_repeat%d.h5'%(model_fn,i))
 
-        model.save_weights('./results/%s_repeat%d.h5'%(model_fn,i))
-        aws_upload('./results/%s_repeat%d.h5'%(model_fn,i))
+        #aws_upload('./results/%s_repeat%d.h5'%(model_fn,i))
+        #aws_upload('.'+local_out+'%s.json'%model_fn)
 
+        #session = boto3.session.Session(profile_name="default")
+        #bucket = session.resource("s3", endpoint_url=prp).Bucket("stuartlab")
+        #bucket.upload_file('./results/%s_repeat%d.h5'%(model_fn,i), s3out+'%s_repeat%d.h5'%(model_fn,i))
+        #bucket.upload_file('.'+local_out+'%s.json'%model_fn, s3out+'%s.json'%model_fn)
         K.clear_session()
     
     #optimal_model= '%s_repeat_%d.h5'%(model_fn,best_repeat)
@@ -128,5 +129,6 @@ if __name__ == "__main__":
     #        if fn != optimal_model:
     #            os.remove('.'+local_out+fn)
                 
-    print('saving results...', flush=True) 
+             
     np.save('.'+local_out+'%s.npy'%(res_fn), res_dict)
+    aws_upload('.'+local_out+'%s.npy'%(res_fn))

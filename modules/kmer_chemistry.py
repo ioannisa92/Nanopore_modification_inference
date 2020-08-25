@@ -1,5 +1,5 @@
 from rdkit import Chem
-#from IPython.display import SVG
+# from IPython.display import SVG
 from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 from collections import defaultdict
@@ -132,7 +132,7 @@ def get_AX_matrix(smiles, Atms, nAtms):
 
         return padded_A_mat, padded_X_mat  
 
-def get_AX(kmer_list, n_type="DNA"):
+def get_AX(kmer_list, n_type="DNA", return_smiles=False):
 
     '''
     Function takes in a kmer-pA measurement lists. Kmers are converted to their SMILES representation.
@@ -140,7 +140,7 @@ def get_AX(kmer_list, n_type="DNA"):
 
     Parameters
     -----------
-    kmer_list: list, list of  kmerse
+    kmer_list: list, list of  kmers
 
     Returns
     ----------
@@ -150,30 +150,36 @@ def get_AX(kmer_list, n_type="DNA"):
 
     k = len(kmer_list[0])
 
-    dna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)CC1',
-            'T':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C(C)=C2)CC1',
-            'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)N=C3O)CC1',
-            'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)CC1',
-            'M':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C(C)=C2)CC1'}
+    dna_base = {"A": "OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)CC1",
+                "T": "OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C(C)=C2)CC1",
+                "G": "OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)NC3=O)CC1",
+                "C": "OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)CC1",
+                "M": "OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C(C)=C2)CC1", # 5mC
+                "Q": "OP(=O)(O)OCC1OC(N3C=NC2=C(NC)N=CN=C23)CC1", #6mA
+                'K': "OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C(CO)=C2)CC1"} # 5hmC 
 
-    rna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)C(O)C1',
-                'T':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1',
-                'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)N=C3O)C(O)C1',
-                'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)C(O)C1',
-                'Q':'OP(=O)(O)OCC1OC(C2C(=O)NC(=O)NC=2)C(O)C1'}
+    rna_base = {"A": "OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)C(O)C1",
+                "T": "OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1", #U
+                "G": "OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)NC3=O)C(O)C1",
+                "C": "OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)C(O)C1",
+                "Q": "OP(=O)(O)OCC1OC(C2C(=O)NC(=O)NC=2)C(O)C1", #pseudo-I
+                "I": "OP(=O)(O)OCC1OC(N3C=NC2C(=O)NC=NC=23)C(O)C1"} # inosine
+
 
 
     if n_type=="DNA":
-        dna_smiles = get_kmer_smiles(k, dna_base)
-        dna_smiles = [dna_smiles.get(kmer)[0] for kmer in kmer_list]
+        smiles = get_kmer_smiles(k, dna_base)
+        smiles = [smiles.get(kmer)[0] for kmer in kmer_list]
 
-        A, X = get_AX_matrix(dna_smiles, ['C', 'N', 'O', 'P'], 133)
+        A, X = get_AX_matrix(smiles, ['C', 'N', 'O', 'P'], 133)
 
     elif n_type=="RNA":
-        rna_smiles = get_kmer_smiles(k, rna_base)
-        rna_smiles = [rna_smiles.get(kmer)[0] for kmer in kmer_list]
+        smiles = get_kmer_smiles(k, rna_base)
+        smiles = [smiles.get(kmer)[0] for kmer in kmer_list]
 
         A, X = get_AX_matrix(rna_smiles, ['C', 'N', 'O', 'P'], 116)
+    if return_smiles:
+        return A,X,smiles
     return A,X
 
 

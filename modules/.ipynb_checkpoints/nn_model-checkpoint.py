@@ -22,7 +22,7 @@ def get_available_gpus():
 
 def initialize_filters(A):
     '''
-    initiate filters
+    initaite filters
     '''
     filters = preprocess_adj_tensor_with_identity(A, True)
     return filters

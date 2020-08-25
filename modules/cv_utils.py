@@ -1,9 +1,9 @@
 from sklearn.model_selection import ShuffleSplit,StratifiedShuffleSplit
 import numpy as np
 import itertools
-from .run import run_params
-from .kmer_chemistry import get_AX
-from .nn_model import initialize_model, initialize_filters
+#from .run import run_params
+#from .kmer_chemistry import get_AX
+#from .nn_model import initialize_model, initialize_filters
 from multiprocessing import Pool, Manager
 import os
 import boto3
@@ -15,7 +15,13 @@ Script will generate cross validation folds in two ways:
     set
 '''
 
-
+def gen_all_kmers(alphabet=['A','T','C','G','M'], repeat=6):
+    '''
+    alphabet: bases to be constructed into kmers
+    repeat: length of kmer
+    '''
+    combinations = list(itertools.product(alphabet,repeat=repeat))
+    return list(map(lambda x:''.join(x), combinations))
 
 def kmer_parser(fn, exclude_base=None):
     '''
@@ -400,7 +406,6 @@ class GPUGSCV:
             for key in res_dict[drug].keys():
                 new_res_dict[drug][key] = list(res_dict[drug][key])
 
-        np.save(self.res_path, new_res_dict)
         
         prp = str(os.environ['PRP'])
         local_out = str(os.environ['MYOUT'])
@@ -429,7 +434,6 @@ class GPUGSCV:
         
         cv_rmse = [] # list of rmses from all folds
         
-        gpu_id = avail_gpus.pop(0) 
         for train_idx, test_idx in splitter:
             kmer_train = kmer_list[train_idx]
             pA_train = pA_list[train_idx]
@@ -463,7 +467,7 @@ class GPUGSCV:
             model = self.model(**model_params)
 
 
-            r,r2,rmse_score, train_hist,test_pred, train_pred = run_params((model,pA_train,pA_test,pA_valid,X_train, gcn_filters_train, X_test, gcn_filters_test,X_valid, gcn_filters_valid, gpu_id))
+            r,r2,rmse_score, train_hist,test_pred, train_pred = run_params((model,pA_train,pA_test,pA_valid,X_train, gcn_filters_train, X_test, gcn_filters_test,X_valid, gcn_filters_valid, avail_gpus))
             
             res_dict[key]['r'] += [r]
             res_dict[key]['r2'] += [r2]
@@ -479,7 +483,6 @@ class GPUGSCV:
 
             cv_rmse += [rmse_score]
         # putting gpu back to available gpus
-        avail_gpus.append(gpu_id)
 
         mean_rmse = np.mean(cv_rmse)
         print('mean_rmse', mean_rmse)
@@ -499,25 +502,27 @@ class GPUGSCV:
 if __name__ == "__main__":
     # for testing
 
+    print(len(gen_all_kmers()))
     #param_dict = dict(b=[1,2,3], a=[4,5])
 
     #c = GPUGSCV(param_dict)
      
-    #fn = "../ont_models/r9.4_180mv_450bps_6mer_DNA.model"
-    fn = "../ont_models/r9.4_180mv_70bps_5mer_RNA.model"
-    all_kmers, all_pas = kmer_parser(fn)
+    #fn = "./ont_models/r9.4_180mv_450bps_6mer_DNA.model"
+    #kmer_list, pA_list = kmer_parser(fn)
+    #fn = "../ont_models/r9.4_180mv_70bps_5mer_RNA.model"
+    #all_kmers, all_pas = kmer_parser(fn)
     #kmer_mat1, pa_list = kmer_parser(fn, exclude_base="G")
-    kmer_mat2, pa_list = kmer_parser(fn, exclude_base="C")
+    
+    #kmer_mat2, pa_list = kmer_parser(fn, exclude_base="C")
 
-    print(len(set(all_kmers)))
-    print(len(set(kmer_mat2)))
+    #print(len(set(all_kmers)))
+    #print(len(set(kmer_mat2)))
 
     #print(len(set(kmer_mat1)), len(set(kmer_mat2)))
 
     #print(len(set(kmer_mat1)|set(kmer_mat2)))
         
-    ''' 
-
+    '''
     for test_size,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in cv_folds(kmer_mat, pa_list, folds=10):
         print(kmer_train_mat.shape)
         print(kmer_test_mat.shape)
@@ -536,13 +541,14 @@ if __name__ == "__main__":
         print(kmer_test_mat.shape)
         print(pA_train_mat.shape)
         print(pA_test_mat.shape)
+    
 
-    for kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in base_folds(kmer_list, pA_list):
+    for _,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in base_folds(kmer_list, pA_list):
         print(kmer_train_mat.shape)
         print(kmer_test_mat.shape)
         print(pA_train_mat.shape)
         print(pA_test_mat.shape)
 
-        print(kmer_train_mat[0])
-        print(kmer_test_mat[0])
+        #print(kmer_train_mat[0])
+        #print(kmer_test_mat[0])
     '''

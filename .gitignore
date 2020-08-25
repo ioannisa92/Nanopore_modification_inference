@@ -1,2 +1,5 @@
 /trash/
 /results/
+/saved_models/
+/plots/
+/gcn_interpret_kmers/
