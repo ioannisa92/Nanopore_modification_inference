@@ -12,12 +12,12 @@ class GetTrainTest():
     def __init__(self, fn, base_pair):
         self.fn = fn
         self.base_pair = base_pair
-        self.all_kmers, self.all_pAs = kmer_parser(self.fn) # all kmer
+        self.all_kmers, self.all_pAs,_ = kmer_parser(self.fn) # all kmer
         self.all_kmers_dict = dict(zip(self.all_kmers, self.all_pAs))
         
         self.train_kmers = []
         for base in self.base_pair:
-            self.kmers_minus_base, _ = kmer_parser(self.fn, exclude_base=base)
+            self.kmers_minus_base, _ ,_= kmer_parser(self.fn, exclude_base=base)
             self.train_kmers += [self.kmers_minus_base]
     
     def get_train(self):
@@ -52,14 +52,24 @@ def wrap(args):
     avail_gpus = args[1]
     res_dict = args[2]
     fn = args[3]
-    n_type=args[4]
     
     c = GetTrainTest(fn, bases)
     train_kmers, train_pa = c.get_train()
     #print(len(train_kmers))
     test_kmers, test_pa = c.get_test()
     #print(len(test_kmers))
-     
+    
+    all_bases = ''.join(train_kmers)+''.join(test_kmers)
+    n_type = None
+    if 'T' in all_bases and 'U' in all_bases:
+        n_type = 'DNA_RNA'
+    elif if 'T' in all_bases and 'U' not in all_bases:
+        n_type = 'DNA'
+    elif if 'T' not in all_bases and 'U'  in all_bases:
+        n_type = 'RNA'
+
+    print(n_type)
+ 
     for i in np.arange(50): 
         r,r2,rmse_score, train_hist, kmer_train, kmer_test, pA_train, pA_test, test_pred, train_pred = run_model((train_kmers, train_pa, test_kmers, test_pa, n_type, avail_gpus))
 
@@ -92,11 +102,11 @@ def main():
     pairs = args.PAIRS
     solo = args.SOLO
 
-    n_type = None
-    if 'RNA' in fn or 'rna' in fn:
-        n_type='RNA'
-    else:
-        n_type="DNA"
+    #n_type = None
+    #if 'RNA' in fn or 'rna' in fn:
+    #    n_type='RNA'
+    #else:
+    #    n_type="DNA"
 
     #fn = "./ont_models/r9.4_180mv_450bps_6mer_DNA.model"
     #fn = "./ont_models/r9.4_180mv_70bps_5mer_RNA.model"
@@ -127,7 +137,7 @@ def main():
         po = Pool(len(gpu_n))
         
         r = po.map_async(wrap ,
-                         ((base_pair, avail_gpus, res_dict, fn, n_type) for base_pair in base_pairs))
+                         ((base_pair, avail_gpus, res_dict, fn) for base_pair in base_pairs))
         
         r.wait()
         print(r.get())
@@ -170,7 +180,7 @@ def main():
         po = Pool(len(gpu_n))
 
         r = po.map_async(wrap ,
-                         ((tuple((base)), avail_gpus, res_dict, fn, n_type) for base in bases))
+                         ((tuple((base)), avail_gpus, res_dict, fn) for base in bases))
 
         r.wait()
         print(r.get())

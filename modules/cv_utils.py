@@ -1,9 +1,9 @@
 from sklearn.model_selection import ShuffleSplit,StratifiedShuffleSplit
 import numpy as np
 import itertools
-#from .run import run_params
-#from .kmer_chemistry import get_AX
-#from .nn_model import initialize_model, initialize_filters
+from .run import run_params
+from .kmer_chemistry import get_AX
+from .nn_model import initialize_model, initialize_filters
 from multiprocessing import Pool, Manager
 import os
 import boto3
@@ -43,6 +43,7 @@ def kmer_parser(fn, exclude_base=None):
     '''
     kmer_list = []
     pA_list = []
+    label_list = []
     with open(fn ,'r') as f:
         lines = f.readlines()
         for line in lines:
@@ -50,6 +51,9 @@ def kmer_parser(fn, exclude_base=None):
                 line = line.split('\t')
             elif ' ' in line:
                 line = line.split(' ')
+            if len(line) > 2:
+                label = int(line[2].strip())
+                label_list += [label]
             kmer = str(line[0]).strip()
             pA = float(line[1].strip())
             if exclude_base is not None:
@@ -57,8 +61,11 @@ def kmer_parser(fn, exclude_base=None):
                     continue
             kmer_list += [kmer]
             pA_list += [pA]
-
-    return np.array(kmer_list), np.array(pA_list)
+    
+    if len(label_list) == 0:
+        label_list = None
+    
+    return np.array(kmer_list), np.array(pA_list), np.array(label_list)
 
 def kmer_parser_enc(fn):
     '''
@@ -293,7 +300,7 @@ class GPUGSCV:
     If multiple gpus are available, each of the parameter combinations will be done on a separate gpu
     '''
 
-    def __init__(self,model,param_dict, cv=10, n_gpus=1,res_fn=None):
+    def __init__(self,model,param_dict, cv=10, n_gpus=1,res_fn=None, n_type="DNA"):
         self.model = model # function that initializes keras model
         self.param_dict = param_dict
         self.original_keys = self.param_dict.keys()
@@ -301,6 +308,7 @@ class GPUGSCV:
         self.n_gpus = n_gpus
         self.res_fn = res_fn # path to save results, if selected res_dict will be saved after each parameter combination is done
         self.combined_params = self._combine_params
+        self.n_type = n_type
 
         try:
             s3out = str(os.environ['S3OUT'])
@@ -331,7 +339,7 @@ class GPUGSCV:
         
         return combined_values_list
 
-    def fit(self, kmer_list,pA_list):
+    def fit(self, kmer_list,pA_list, labels=None):
        
         manager = Manager()
         best_score_params = manager.list() #[best_score, best_params]
@@ -363,11 +371,12 @@ class GPUGSCV:
                 res_dict[key]['test_pred'] = manager.list()
                 res_dict[key]['train_pred'] = manager.list()
 
-        print('testing {} combinations'.format(len(run_params))) 
+        print('testing {} combinations'.format(len(run_params)), flush=True) 
         po = Pool(len(avail_gpus))
-    
+        
+         
         r = po.map_async(self.run_cv ,
-                     ((kmer_list, pA_list, params, avail_gpus,best_score_params, res_dict ) for params in run_params))
+                     ((kmer_list, pA_list, params, avail_gpus,best_score_params, res_dict, labels) for params in run_params))
 
         r.wait()
         print(r.get())
@@ -424,13 +433,16 @@ class GPUGSCV:
         avail_gpus = args[3]
         best_score_params = args[4]
         res_dict = args[5]
-   
+        labels = args[6] 
 
         model_params = dict(zip(self.original_keys,params))
  
-        print('testing params', model_params)
+        print('testing params', model_params, flush=True)
         key =  str(model_params).replace('{', '').replace('}','')
-        splitter = ShuffleSplit(n_splits=self.cv, test_size=0.2, random_state=42).split(kmer_list) 
+        if labels is None:
+            splitter = ShuffleSplit(n_splits=self.cv, test_size=0.2, random_state=42).split(kmer_list) 
+        elif labels is not None:
+            splitter = StratifiedShuffleSplit(n_splits=self.cv, test_size=0.2, random_state=42).split(kmer_list, labels)
         
         cv_rmse = [] # list of rmses from all folds
         
@@ -452,13 +464,14 @@ class GPUGSCV:
             pA_test = pA_list[test_idx]
             
             assert len(kmer_train)+len(kmer_valid)+len(kmer_test) == len(kmer_list)
-            
+           
+            #print('getting adj', flush=True) 
             # getting adj and feature matrix for smiles
-            A_train, X_train = get_AX(kmer_train)
+            A_train, X_train = get_AX(kmer_train, n_type = self.n_type)
             gcn_filters_train = initialize_filters(A_train)
-            A_test, X_test = get_AX(kmer_test)
+            A_test, X_test = get_AX(kmer_test, n_type = self.n_type)
             gcn_filters_test = initialize_filters(A_test)
-            A_valid, X_valid = get_AX(kmer_valid)
+            A_valid, X_valid = get_AX(kmer_valid, n_type = self.n_type)
             gcn_filters_valid = initialize_filters(A_valid)
 
             model_params['X'] = X_train
@@ -466,9 +479,10 @@ class GPUGSCV:
 
             model = self.model(**model_params)
 
-
+            print('running_model', flush=True)
             r,r2,rmse_score, train_hist,test_pred, train_pred = run_params((model,pA_train,pA_test,pA_valid,X_train, gcn_filters_train, X_test, gcn_filters_test,X_valid, gcn_filters_valid, avail_gpus))
-            
+           
+            print('updating_dict',flush=True) 
             res_dict[key]['r'] += [r]
             res_dict[key]['r2'] += [r2]
             res_dict[key]['rmse'] += [rmse_score]
@@ -482,7 +496,6 @@ class GPUGSCV:
             res_dict[key]['train_pred'] += [train_pred]
 
             cv_rmse += [rmse_score]
-        # putting gpu back to available gpus
 
         mean_rmse = np.mean(cv_rmse)
         print('mean_rmse', mean_rmse)

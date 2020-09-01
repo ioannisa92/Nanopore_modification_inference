@@ -31,16 +31,30 @@ if __name__ == "__main__":
     res_fn = args.RESULTS
     local_out = str(os.environ['MYOUT']) # see job.yml for env definition
 
-    n_type = None
-    if 'RNA' in fn or 'rna' in fn:
-        n_type='RNA'
-    else:
-        n_type="DNA"
+    #n_type = None
+    #if 'RNA' in fn or 'rna' in fn:
+    #    n_type='RNA'
+    #else:
+    #    n_type="DNA"
+    
     print('parsing kmers...', flush=True) 
     mod_dna_kmer_fn = './ont_models/r9.4_450bps.cpg.m.only.6mer.template.model'
     
-    kmer_list, pA_list = kmer_parser(fn)
+    kmer_list, pA_list,_ = kmer_parser(fn)
     kmer_mod_list, pA_mod_list = kmer_parser(mod_dna_kmer_fn)
+
+    all_bases = ''.join(kmer_list)
+    n_type = None
+    if 'T' in all_bases and 'U' in all_bases:
+        n_type = 'DNA_RNA'
+    elif if 'T' in all_bases and 'U' not in all_bases:
+        n_type = 'DNA'
+    elif if 'T' not in all_bases and 'U'  in all_bases:
+        n_type = 'RNA'
+
+    print(n_type)
+
+
 
     #generating all kmers (with mods) that the model will predict pA on
     all_dna_mod_kmers = gen_all_kmers(alphabet=['A','T','C','G','M'], repeat=6)

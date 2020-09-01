@@ -31,13 +31,24 @@ if __name__ == "__main__":
     res_fn = args.RESULTS
     local_out = str(os.environ['MYOUT']) # see job.yml for env definition
 
-    n_type = None
-    if 'RNA' in fn or 'rna' in fn:
-        n_type='RNA'
-    else:
-        n_type="DNA"
+    i#n_type = None
+    #if 'RNA' in fn or 'rna' in fn:
+    #    n_type='RNA'
+    #else:
+    #    n_type="DNA"
 
-    kmer_list, pA_list = kmer_parser(fn)
+    kmer_list, pA_list,_ = kmer_parser(fn)
+
+    all_bases = ''.join(kmer_list)
+    n_type = None
+    if 'T' in all_bases and 'U' in all_bases:
+        n_type = 'DNA_RNA'
+    elif if 'T' in all_bases and 'U' not in all_bases:
+        n_type = 'DNA'
+    elif if 'T' not in all_bases and 'U'  in all_bases:
+        n_type = 'RNA'
+
+    print(n_type)
 
     # getting adj and feature matrix for smiles
     A, X = get_AX(kmer_list, n_type=n_type)

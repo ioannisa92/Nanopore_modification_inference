@@ -11,6 +11,8 @@ from sklearn.metrics import r2_score
 from scipy.stats import pearsonr
 import tqdm
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
 from keras import backend as K
 from keras.callbacks import EarlyStopping
 #imports
@@ -18,56 +20,11 @@ from keras.callbacks import EarlyStopping
 def rmse(y_true, y_pred):
     return np.sqrt(np.mean(np.square(y_pred - y_true)))
 
-def get_AX(kmer_list):
-
-    '''
-    Function takes in a kmer-pA measurement lists. Kmers are converted to their SMILES representation.
-    An array of the molecular Adjacency and Feature matrices is returned
-
-    Parameters
-    -----------
-    kmer_list: list, list of  kmerse
-
-    Returns
-    ----------
-    A: mat, matrix of atom to atom connections for each kmer; shape = (n_of_molecules, n_atoms, n_atoms)
-    X mat, matrix of atom to features for each kmer; shape = (n_of_molecules, n_atoms, n_features)
-    '''
-
-    k = len(kmer_list[0])
-
-    dna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)CC1',
-            'T':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C(C)=C2)CC1',
-            'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)N=C3O)CC1',
-            'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)CC1',
-            'M':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C(C)=C2)CC1'}
-
-    rna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)C(O)C1',
-                'T':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1',
-                'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)N=C3O)C(O)C1',
-                'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)C(O)C1',
-                'Q':'OP(=O)(O)OCC1OC(C2C(=O)NC(=O)NC=2)C(O)C1'}
-
-
-    if n_type=="DNA":
-        dna_smiles = kmer_chemistry.get_kmer_smiles(k, dna_base)
-        dna_smiles = [dna_smiles.get(kmer)[0] for kmer in kmer_list]
-
-        A, X = kmer_chemistry.get_AX_matrix(dna_smiles, ['C', 'N', 'O', 'P'], 133)
-
-    elif n_type=="RNA":
-        rna_smiles = kmer_chemistry.get_kmer_smiles(k, rna_base)
-        rna_smiles = [rna_smiles.get(kmer)[0] for kmer in kmer_list]
-
-        A, X = kmer_chemistry.get_AX_matrix(rna_smiles, ['C', 'N', 'O', 'P'], 116)
-    return A,X 
-
 def fold_training(kmer_train,
                     kmer_test,
                     pA_train,
                     pA_test,
-                    val_split=0,
-                    callbacks=False):
+                    val_split=0):
     
     '''
     Function takes in train and test matrices and fits a new randomly initialized model.
@@ -92,27 +49,35 @@ def fold_training(kmer_train,
     
     '''
     # getting training and test A, X matrices, and their corresponding filters
-    A_train, X_train = get_AX(kmer_train)
+    A_train, X_train = kmer_chemistry.get_AX(kmer_train,n_type=n_type)
     gcn_filters_train = initialize_filters(A_train)
-    A_test, X_test = get_AX(kmer_test)
+    A_test, X_test = kmer_chemistry.get_AX(kmer_test,n_type=n_type)
     gcn_filters_test = initialize_filters(A_test)
-    
+   
+    gpu_id = 0
+    os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(gpu_id)
+    print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"])
+
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 0.8 #what portion of gpu to use
+
+    session = tf.Session(config=config)
+    K.set_session(session)
+ 
     # initializing model - new randomly initialized model for every fold training
     if n_type=="DNA":
-        model = initialize_model(X_train, gcn_filters_train, n_gcn=4, n_cnn=4, kernal_size_cnn=4, n_dense=4)
+        model = initialize_model(X_train, gcn_filters_train, n_gcn=5, n_cnn=1, kernal_size_cnn=10, n_dense=5, dropout=0.1)
     elif n_type=="RNA":
-        model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=4, kernal_size_cnn=4, n_dense=4)
+        model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=5, kernal_size_cnn=4, n_dense=5, dropout=0.1)
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
-    if callbacks:
-        callbacks = [EarlyStopping(monitor='loss', min_delta=0.01, patience=10, verbose=1, mode='min', baseline=None, restore_best_weights=False)]
-    else:
-        callbacks = None
+    callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=10, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
  
     # training model and testing performance
-    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=350, verbose=verbosity, callbacks=callbacks)
+    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_split=val_split, batch_size=128, epochs=500, verbose=verbosity, callbacks=callbacks)
     test_pred = model.predict([X_test, gcn_filters_test]).flatten()
-    
+    train_pred = model.predict([X_train, gcn_filters_train]).flatten()
+ 
     #calculating metrics
     r, _ = pearsonr(pA_test, test_pred)
     r2 = r2_score(pA_test, test_pred)
@@ -120,7 +85,7 @@ def fold_training(kmer_train,
 
     # clearing session to avoid adding unwanted nodes on TF graph
     K.clear_session()
-    return train_hist, r, r2, rmse_score, test_pred
+    return train_hist, r, r2, rmse_score, test_pred, train_pred
 
 
 
@@ -132,7 +97,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--FILE', default=None, type=str, required=False, help='kmer file with pA measurement')
     parser.add_argument('-cv', '--CV', required=False, action='store_true',help='MODE: Random CV splits of variable size')
     parser.add_argument('-kmer_cv', '--KMERCV', required=False, action='store_true',help='MODE: CV splits based on position of base')
-    parser.add_argument('-test_splits', '--SPLITS', nargs='+', required=False, default = np.arange(0.1,1,0.1), help='Test splits to run k-fold cross validation over')
+    parser.add_argument('-test_splits', '--SPLITS', nargs='+',type=float, required=False, default = np.arange(0.05,1,0.05), help='Test splits to run k-fold cross validation over')
     parser.add_argument('-k', '--FOLDS', type=int, default=50, required=False, help='K for fold numbers in cross validation')
     parser.add_argument('-o', '--OUT', default="out.npy", type=str, required=False, help='Full path for .npy file where results are saved')
     parser.add_argument('-v', '--VERBOSITY', default=0, type=int, required=False, help='Verbosity of model. Other than zero, loss per batch per epoch is printed. Default is 0, meaning nothing is printed')
@@ -145,23 +110,28 @@ if __name__ == "__main__":
     cv = args.CV
     kmer_cv = args.KMERCV
     out = args.OUT
-    test_splits = args.SPLITS
+    test_splits = np.array(args.SPLITS)
     folds = args.FOLDS
     
     global verbosity
     verbosity = args.VERBOSITY  
 
-    global n_type
-    n_type = None
-    if 'RNA' in fn or 'rna' in fn:
-        n_type='RNA'
-    else:
-        n_type="DNA"
-
-
     local_out = str(os.environ['MYOUT']) # see job.yml for env definition
 
-    kmer_list, pA_list = kmer_parser(fn)
+    kmer_list, pA_list,_ = kmer_parser(fn)
+    all_bases = ''.join(list(kmer_list))
+
+    global n_type
+    n_type = None
+    if 'T' in all_bases and 'U' in all_bases:
+        n_type = 'DNA_RNA'
+    elif 'T' in all_bases and 'U' not in all_bases:
+        n_type = 'DNA'
+    elif 'T' not in all_bases and 'U'  in all_bases:
+        n_type = 'RNA'
+
+    print(n_type)
+
 
     if cv:
         
@@ -172,7 +142,7 @@ if __name__ == "__main__":
     
             key = str(round(train_size,2))+'-'+str(round(test_size,2))
         
-            cv_res[key] = {'r':[], 'r2':[],'rmse':[], "train_history":[],'train_kmers':[],'test_kmers':[], 'train_labels':[], 'test_labels':[]}
+            cv_res[key] = {'r':[], 'r2':[],'rmse':[], "train_history":[],'train_kmers':[],'test_kmers':[], 'train_labels':[], 'test_labels':[], 'test_pred' : [],'train_pred':[]}
  
             for i in range(kmer_train_mat.shape[0]):
                 
@@ -182,7 +152,7 @@ if __name__ == "__main__":
                 pA_train = pA_train_mat[i]
                 pA_test = pA_test_mat[i]
                 
-                train_hist, foldr, foldr2, fold_rmse, test_pred = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1, callbacks=True)
+                train_hist, foldr, foldr2, fold_rmse, test_pred,train_pred = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
                 cv_res[key]['r'] += [foldr]
                 cv_res[key]['r2'] += [foldr2]
                 cv_res[key]['rmse'] += [fold_rmse] 
@@ -193,6 +163,7 @@ if __name__ == "__main__":
                 cv_res[key]['train_labels'] += [pA_train]
                 cv_res[key]['test_labels'] += [pA_test]
                 cv_res[key]['test_pred'] += [test_pred]   
+                cv_res[key]['train_pred'] += [train_pred]
 
         np.save('.'+local_out+out, cv_res) #this will go to /results/
 
@@ -209,21 +180,27 @@ if __name__ == "__main__":
                 base_examined = base_order[i]
                 key_ = key + '-' + base_examined
                 
-                kmer_cv_res[key_] = {'r':None, 'r2':None,'rmse':None}
-            
+                #kmer_cv_res[key_] = {'r':None, 'r2':None,'rmse':None}
+                kmer_cv_res[key_] = {'r':[], 'r2':[],'rmse':[], "train_history":[],'train_kmers':[],'test_kmers':[], 'train_labels':[], 'test_labels':[], 'test_pred' : [],'train_pred':[]}
+
                 # each iteration is a fold
                 kmer_train = kmer_train_mat[i]
                 kmer_test = kmer_test_mat[i]
                 pA_train = pA_train_mat[i]
                 pA_test = pA_test_mat[i]
-
-                train_hist, foldr, foldr2, fold_rmse, test_pred = fold_training(kmer_train,kmer_test,pA_train,pA_test)
-                kmer_cv_res[key_]['r'] = foldr
-                kmer_cv_res[key_]['r2'] = foldr2
-                kmer_cv_res[key_]['rmse'] = fold_rmse 
                 
-                kmer_cv_res[key_]['train_history']  = train_hist.history
-                kmer_cv_res[key_]['test_pred'] = test_pred
-                kmer_cv_res[key_]['test_labels'] = pA_test
+                for i in np.arange(50):
+                    train_hist, foldr, foldr2, fold_rmse, test_pred,train_pred = fold_training(kmer_train,kmer_test,pA_train,pA_test, val_split = 0.1)
+                    kmer_cv_res[key_]['r'] += [foldr]
+                    kmer_cv_res[key_]['r2'] += [foldr2]
+                    kmer_cv_res[key_]['rmse'] += [fold_rmse] 
+                    
+                    kmer_cv_res[key_]['train_history']  += [train_hist.history]
+                    kmer_cv_res[key_]['train_kmers'] += [kmer_train]
+                    kmer_cv_res[key_]['test_kmers'] += [kmer_test]
+                    kmer_cv_res[key_]['train_labels'] += [pA_train]
+                    kmer_cv_res[key_]['test_pred'] += [test_pred]
+                    kmer_cv_res[key_]['test_labels'] += [pA_test]
+                    kmer_cv_res[key_]['train_pred'] += [train_pred]
                 
         np.save('.'+local_out+out, kmer_cv_res)

@@ -167,13 +167,13 @@ def run_params(args):
     session = tf.Session(config=config)
     K.set_session(session)
 
-    callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=25, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
+    callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=15, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
 
     # initializing model - new randomly initialized model for every fold training
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
     # training model and testing performance
-    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_data=([X_valid,gcn_filters_valid],pA_valid), batch_size=128, epochs=500, verbose=0, callbacks=callbacks)
+    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_data=([X_valid,gcn_filters_valid],pA_valid), batch_size=128, epochs=1, verbose=0, callbacks=callbacks)
     test_pred = model.predict([X_test, gcn_filters_test]).flatten()
     train_pred = model.predict([X_train, gcn_filters_train]).flatten()
     

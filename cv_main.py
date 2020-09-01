@@ -116,17 +116,22 @@ if __name__ == "__main__":
     global verbosity
     verbosity = args.VERBOSITY  
 
-    global n_type
-    n_type = None
-    if 'RNA' in fn or 'rna' in fn:
-        n_type='RNA'
-    else:
-        n_type="DNA"
-
-
     local_out = str(os.environ['MYOUT']) # see job.yml for env definition
 
-    kmer_list, pA_list = kmer_parser(fn)
+    kmer_list, pA_list,_ = kmer_parser(fn)
+    all_bases = ''.join(list(kmer_list))
+
+    global n_type
+    n_type = None
+    if 'T' in all_bases and 'U' in all_bases:
+        n_type = 'DNA_RNA'
+    elif 'T' in all_bases and 'U' not in all_bases:
+        n_type = 'DNA'
+    elif 'T' not in all_bases and 'U'  in all_bases:
+        n_type = 'RNA'
+
+    print(n_type)
+
 
     if cv:
         
