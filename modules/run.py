@@ -59,7 +59,7 @@ def run_model(args, val_split=0.1):
         # read the available GPU for training
         gpu_id = avail_gpus.pop(0)
         os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(gpu_id)
-        print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"])
+        print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"], flush=True)
 
     # getting adj and feature matrix for smiles
     A_train, X_train = get_AX(kmer_train, n_type=n_type)
@@ -75,9 +75,11 @@ def run_model(args, val_split=0.1):
     K.set_session(session)
 
     if n_type=="DNA":
-        model = initialize_model(X_train, gcn_filters_train, n_gcn=5, n_cnn=1, kernal_size_cnn=10, n_dense=5, dropout=0.1)
+        model = initialize_model(X_train, gcn_filters_train, n_gcn=4, n_cnn=3, kernal_size_cnn=10, n_dense=10, dropout=0.1)
     elif n_type=="RNA":
-        model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=5, kernal_size_cnn=4, n_dense=5, dropout=0.1)
+        model = initialize_model(X_train, gcn_filters_train, n_gcn=4, n_cnn=5, kernal_size_cnn=10, n_dense=10, dropout=0.1)
+    #elif n_type == 'DNA_RNA':
+    #    model = initialize_model(X_train, gcn_filters_train, n_gcn=4, n_cnn=1, kernal_size_cnn=10, n_dense=5, dropout=0.1)
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
     callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=10, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
@@ -157,12 +159,13 @@ def run_params(args):
         # read the available GPU for training
         gpu_id = avail_gpus.pop(0)
         os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(gpu_id)
-        print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"])
+        print("using gpu:", os.environ["CUDA_VISIBLE_DEVICES"], flush=True)
 
 
     # configuring session
     config = tf.ConfigProto()
-    config.gpu_options.per_process_gpu_memory_fraction = 0.5 #what portion of gpu to use
+    config.gpu_options.per_process_gpu_memory_fraction = 0.9 #what portion of gpu to use
+    #config.gpu_options.allow_growth = True
     
     session = tf.Session(config=config)
     K.set_session(session)
@@ -173,7 +176,7 @@ def run_params(args):
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
     # training model and testing performance
-    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_data=([X_valid,gcn_filters_valid],pA_valid), batch_size=128, epochs=1, verbose=0, callbacks=callbacks)
+    train_hist = model.fit([X_train,gcn_filters_train],pA_train,validation_data=([X_valid,gcn_filters_valid],pA_valid), batch_size=128, epochs=500, verbose=0, callbacks=callbacks)
     test_pred = model.predict([X_test, gcn_filters_test]).flatten()
     train_pred = model.predict([X_train, gcn_filters_train]).flatten()
     

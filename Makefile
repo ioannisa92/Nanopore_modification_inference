@@ -33,7 +33,7 @@ docker-make:
 	sudo docker push ${DOCKERHUB_USERNAME}/${img}:${version}
 monitor:
 	# Run nvidia monitor in a loop to monitor GPU usage
-	kubectl exec -it ${pod} -- nvidia-smi --loop=5
+	kubectl exec -it ${pod} -- nvidia-smi --loop=1
 docker-delete-none:
 	sudo docker images | grep none | awk '{ print $3; }' | xargs docker rmi
 

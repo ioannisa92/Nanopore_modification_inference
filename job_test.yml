@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  # Prefix name of job with user and timestamp
+  #name: $USER
+  name: dna.gscv
+  namespace: stuartlab
+spec:
+  #backoffLimit: 0
+  # Delete the log after a minute
+  #ttlSecondsAfterFinished: 60
+  #template: 
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: gpu-type
+            operator: In
+            values:
+            - 2080Ti
+  containers:
+    
+  - name: magic
+    image: $DOCKERHUB_ACCOUNT/ndmi_env:latest
+    imagePullPolicy: Always
+    env:
+    - name: USER
+      value: $USER
+    - name: PRP
+      value: "https://s3.nautilus.optiputer.net"
+    - name: MYDATA
+      value: /data/
+    - name: MYOUT # outdir pod, defined by the docker image
+      value: /results/
+    - name: S3DATA
+      value: users/ianastop/data/
+    - name: S3OUT
+      value: users/ianastop/out/ 
+    volumeMounts:
+    - mountPath: /data
+      name: ianastop-storage
+    - mountPath: /root/.aws/
+      name: s3-credentials
+      readOnly: true
+    - mountPath: /out
+      name: ianastop-out
+    resources:
+      requests:
+        cpu: "1"
+        nvidia.com/gpu: 2
+        memory: "5G"
+        ephemeral-storage: "100G"
+      limits:
+        cpu: "2"
+        nvidia.com/gpu: 2
+        memory: "8G"
+        ephemeral-storage: "160G"
+    #command: ['bash','train_wrap.sh', './ont_models/r9.4_180mv_450bps_6mer_DNA.model', 'dna_model','dna_mod_pred_results_repeat50times_run2']
+    #command: ['bash','train_wrap.sh', './ont_models/r9.4_180mv_70bps_5mer_RNA.model', 'rna_model','rna_model_results_repeat50times']
+    #command: ["bash", "gscv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model", "10"]
+    command: ["bash", "gscv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model", "10"]
+    #command: ["bash", "gscv_wrap.sh", "./ont_models/6mer_DNA_5mer_RNA_combined.model", "10"]
+    #command: ["bash", "basepair_exclude_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model", "dna_exclude_basepairs_run2_results.npy"]
+    #command: ["bash", "basepair_exclude_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model", "rna_exclude_basepairs_run2_results.npy"]
+    #command: ["bash", "base_exclude_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model", "dna_exclude_base_repeat50times_run2_results.npy"]
+    #command: ["bash", "base_exclude_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model", "rna_exclude_base_repeat50times_run2_results.npy"]
+    #command: ["bash", "base_exclude_wrap.sh", "./ont_models/6mer_DNA_5mer_RNA_combined.model", "dna_rna_exclude_base_repeat50times_run1_results.npy"]
+    #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model","dna_cv_run1_results.npy"]
+    #command: ["bash", "cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_cv_results_run2.npy" ]
+    #command: ["bash", "cv_wrap.sh", "./ont_models/6mer_DNA_5mer_RNA_combined.model","dna_rna_cv_results_run2.npy" ]
+    #command: ["bash", "combined_cv_wrap.sh", "0", "combined_cv_results.npy",  "0.9 0.75 0.5 0.25 0.1"]
+    #command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_70bps_5mer_RNA.model","rna_posdrop_repeat50times_run2_results.npy" ]
+    #command: ["bash", "kmer_cv_wrap.sh", "./ont_models/r9.4_180mv_450bps_6mer_DNA.model","dna_kmer_cv_repeat50times_run2_results.npy" ]
+    #command: ['bash','rna_mod_pred.sh', './ont_models/r9.4_180mv_70bps_5mer_RNA.model', 'rna_model','rna_mod_pred_results_repeat50times']
+    #command: ['bash','dna_mod_pred.sh', './ont_models/r9.4_180mv_450bps_6mer_DNA.model', 'dna_model','dna_mod_pred_results_50fold']
+  restartPolicy: Never
+  volumes:
+  - name: ianastop-storage
+    emptyDir: {}
+  - name: ianastop-out
+    emptyDir: {}  
+  - name: s3-credentials
+    secret:
+      secretName: new-prp

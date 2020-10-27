@@ -43,7 +43,7 @@ class GetTrainTest():
         return train_kmers, train_pa, test_kmers, test_pa
 
 def wrap(args):
-    print("in wrap")
+    #print("in wrap")
     bases = args[0] # tuple
     if len(bases) >= 2:
         key = '-'.join(list(bases))
@@ -52,24 +52,29 @@ def wrap(args):
     avail_gpus = args[1]
     res_dict = args[2]
     fn = args[3]
-    
+    n_type = args[4]
+   
+    #print('dropping', key) 
     c = GetTrainTest(fn, bases)
     train_kmers, train_pa = c.get_train()
-    #print(len(train_kmers))
+    print(len(train_kmers))
     test_kmers, test_pa = c.get_test()
-    #print(len(test_kmers))
+    print(len(test_kmers))
+    #print(test_kmers[:5])
     
-    all_bases = ''.join(train_kmers)+''.join(test_kmers)
-    n_type = None
-    if 'T' in all_bases and 'U' in all_bases:
-        n_type = 'DNA_RNA'
-    elif if 'T' in all_bases and 'U' not in all_bases:
-        n_type = 'DNA'
-    elif if 'T' not in all_bases and 'U'  in all_bases:
-        n_type = 'RNA'
+    #all_bases = ''.join(train_kmers)+''.join(test_kmers)
+    #n_type = None
+    #if 'T' in all_bases and 'u' in all_bases:
+    #    n_type = 'DNA_RNA'
+    #elif 'T' in all_bases and 'u' not in all_bases:
+    #    n_type = 'DNA'
+    #elif 'T' not in all_bases and 'U'  in all_bases:
+    #    n_type = 'RNA'
+    #    key = key.replace('T','U')
 
-    print(n_type)
- 
+    print(n_type, flush=True)
+    
+
     for i in np.arange(50): 
         r,r2,rmse_score, train_hist, kmer_train, kmer_test, pA_train, pA_test, test_pred, train_pred = run_model((train_kmers, train_pa, test_kmers, test_pa, n_type, avail_gpus))
 
@@ -86,7 +91,6 @@ def wrap(args):
         res_dict[key]['train_pred'] += [train_pred]
         
         print("dict updated")
-    
 
 def main():
     ########----------------------Command line arguments--------------------##########
@@ -95,23 +99,28 @@ def main():
     parser.add_argument('-base_pair_exclude', '--PAIRS', required=False, action='store_true', help='MODE: pairs of pases will be excluded')
     parser.add_argument('-base_exclude', '--SOLO', required=False, action = 'store_true', help='MODE: each of the four bases will be removed from training')
     parser.add_argument('-o', '--OUT', default="out.npy", type=str, required=False, help='Full path for .npy file where results are saved')
+    parser.add_argument('-n_type', '--NTYPE', default="DNA", type=str, required=True, help='Type of nucleotide examined: DNA or RNA')
     args=parser.parse_args()
     ########----------------------Command line arguments--------------------##########
     fn = args.FILE
     out = args.OUT
     pairs = args.PAIRS
     solo = args.SOLO
-
+    n_type = args.NTYPE
     #n_type = None
     #if 'RNA' in fn or 'rna' in fn:
     #    n_type='RNA'
     #else:
     #    n_type="DNA"
 
+
     #fn = "./ont_models/r9.4_180mv_450bps_6mer_DNA.model"
     #fn = "./ont_models/r9.4_180mv_70bps_5mer_RNA.model"
     if pairs:
-        base_pairs = [("G","C"),("G", "A"), ("G","T"), ("C", "A"), ("C", "T"), ("A", "T")]
+        if n_type == 'DNA':
+            base_pairs = [("G","C"),("G", "A"), ("G","T"), ("C", "A"), ("C", "T"), ("A", "T")]
+        elif n_type == 'RNA':
+            base_pairs = [("G","C"),("G", "A"), ("G","U"), ("C", "A"), ("C", "U"), ("A", "U")]
         
         manager = Manager()
         gpu_n = np.arange(get_available_gpus())
@@ -137,7 +146,7 @@ def main():
         po = Pool(len(gpu_n))
         
         r = po.map_async(wrap ,
-                         ((base_pair, avail_gpus, res_dict, fn) for base_pair in base_pairs))
+                         ((base_pair, avail_gpus, res_dict, fn, n_type) for base_pair in base_pairs))
         
         r.wait()
         print(r.get())
@@ -155,11 +164,16 @@ def main():
         local_out = str(os.environ['MYOUT']) # see job.yml for env definition
         np.save('.'+local_out+out, new_res_dict) #this will go to /results/
     if solo:
-        bases = ['A','T','C','G']
-       
+        if n_type == "DNA":
+            bases = ['A','T','C','G'] 
+        elif n_type == "RNA":
+            bases = ['A','U','C','G']
+        
         manager = Manager()
-        gpu_n = np.arange(get_available_gpus())
-        #gpu_n = np.arange(5)
+        try:
+            gpu_n = np.arange(get_available_gpus())
+        except:
+            gpu_n = np.arange(5) # for testing
         avail_gpus = manager.list(gpu_n)
         res_dict = manager.dict()
         
@@ -179,8 +193,11 @@ def main():
         
         po = Pool(len(gpu_n))
 
+        #for base in bases:
+        #    print(wrap((tuple((base)), avail_gpus, res_dict, fn)))
+
         r = po.map_async(wrap ,
-                         ((tuple((base)), avail_gpus, res_dict, fn) for base in bases))
+                         ((tuple((base)), avail_gpus, res_dict, fn, n_type) for base in bases))
 
         r.wait()
         print(r.get())

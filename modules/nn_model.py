@@ -32,7 +32,7 @@ def initialize_model(X, filters,
                      n_gcn=2,
                      n_cnn=2, kernal_size_cnn=3,
                      n_dense=2,
-                     dropout=0.2):
+                     dropout=0.1):
     '''
     initite model
     '''
@@ -50,13 +50,20 @@ def initialize_model(X, filters,
     #GCN
     
     for n in range(n_cnn, 0, -1):
-        output = Conv1D(16 * (2**(n)), kernal_size_cnn,kernel_initializer=k_i)(output)
+        output = Conv1D(16 * (2**(n-1)), kernal_size_cnn,kernel_initializer=k_i, activation='relu')(output)
+        output = Dropout(dropout)(output)
+
     output = AveragePooling1D()(output)
+    
     #CNN
     
     output = Flatten()(output)
+    
+    #for n in range(n_dense, 0, -1):
     output = Dense(16 * (2**(n_dense - 1)), kernel_initializer=k_i)(output)
     output = Activation('elu')(output)
+    output = Dropout(dropout)(output)
+    
     output = Dense(1, kernel_initializer=k_i)(output)
     output = Activation('linear')(output)
     #flatten and dense

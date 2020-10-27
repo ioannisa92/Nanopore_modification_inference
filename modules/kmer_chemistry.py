@@ -103,7 +103,7 @@ def pad_compound_graph(mat_list, nAtms, axis=None):
         assert type(mat_list) is list
         padded_matrices = []
         for m in mat_list:
-            print(nAtms, m.shape[0], flush=True)
+            #print(nAtms, m.shape[0], flush=True)
             pad_length = nAtms - m.shape[0]
             if axis==0:
                 padded_matrices += [np.pad(m, [(0,pad_length),(0,0)], mode='constant')]
@@ -160,7 +160,7 @@ def get_AX(kmer_list, n_type="DNA", return_smiles=False):
                 'K': "OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C(CO)=C2)CC1"} # 5hmC 
 
     rna_base = {"A": "OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)C(O)C1",
-                "T": "OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1", #U
+                "U": "OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1", #U
                 "G": "OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)NC3=O)C(O)C1",
                 "C": "OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)C(O)C1",
                 "Q": "OP(=O)(O)OCC1OC(C2C(=O)NC(=O)NC=2)C(O)C1", #pseudo-I

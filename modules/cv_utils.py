@@ -65,7 +65,9 @@ def kmer_parser(fn, exclude_base=None):
     if len(label_list) == 0:
         label_list = None
     
-    return np.array(kmer_list), np.array(pA_list), np.array(label_list)
+        return np.array(kmer_list), np.array(pA_list), label_list
+    else:
+        return np.array(kmer_list), np.array(pA_list), np.array(label_list)
 
 def kmer_parser_enc(fn):
     '''
@@ -229,7 +231,7 @@ def cv_folds(X, Y,labels=None, folds=5, test_sizes = np.arange(0.1,1,0.1)):
         yield test_size,kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat
 
 
-def base_folds(kmer_list, pA_list):
+def base_folds(kmer_list, pA_list, bases):
 
     '''
     Function generates train test splits based on DNA base position on the kmer
@@ -246,7 +248,7 @@ def base_folds(kmer_list, pA_list):
     For the test matrices, the base in PRSENT
     '''
 
-    bases = ['A', 'T', 'C', 'G']
+    #bases = ['A', 'T', 'C', 'G']
     positions = np.arange(0,len(kmer_list[0])) # assuming all kmers in kmer_list are of equal length
 
     new_kmer_list = []
@@ -355,8 +357,11 @@ class GPUGSCV:
             
             key = dict(zip(self.original_keys,params))
             key = str(key).replace('{', '').replace('}','')
-            if key in res_dict and len(res_dict[key]['r'])==0: # r key always updates first so if that is not updated, the rest arent either
-                continue 
+            if key in res_dict and len(res_dict[key]['r'])==self.cv: # r key always updates first so if that is not updated, the rest arent either
+                continue
+            #if "'n_gcn': 10" in key and "'n_cnn': 10" in key: # removing big models because RAM issues. Will keep to run later 
+            #    res_dict[key] = manager.dict() # keeping params that were not run as an empty dict 
+            #    continue # empty dict will not be updated
             else:   
                 run_params += [params]
                 res_dict[key] = manager.dict()
@@ -434,7 +439,7 @@ class GPUGSCV:
         best_score_params = args[4]
         res_dict = args[5]
         labels = args[6] 
-
+        print(labels is None)
         model_params = dict(zip(self.original_keys,params))
  
         print('testing params', model_params, flush=True)

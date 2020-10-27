@@ -66,9 +66,12 @@ def fold_training(kmer_train,
  
     # initializing model - new randomly initialized model for every fold training
     if n_type=="DNA":
-        model = initialize_model(X_train, gcn_filters_train, n_gcn=5, n_cnn=1, kernal_size_cnn=10, n_dense=5, dropout=0.1)
+        #model = initialize_model(X_train, gcn_filters_train, n_gcn=5, n_cnn=1, kernal_size_cnn=10, n_dense=5, dropout=0.1) # previous best
+        model = initialize_model(X_train, gcn_filters_train, n_gcn=4, n_cnn=3, kernal_size_cnn=10, n_dense=10, dropout=0.1)
     elif n_type=="RNA":
-        model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=5, kernal_size_cnn=4, n_dense=5, dropout=0.1)
+        model = initialize_model(X_train, gcn_filters_train, n_gcn=4, n_cnn=5, kernal_size_cnn=10, n_dense=10, dropout=0.1)
+    #elif n_type == 'DNA_RNA':
+    #    model = initialize_model(X_train, gcn_filters_train, n_gcn=4, n_cnn=1, kernal_size_cnn=10, n_dense=5, dropout=0.1)
     model.compile(loss='mean_squared_error', optimizer=Adam())
 
     callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.01, patience=10, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
@@ -118,26 +121,26 @@ if __name__ == "__main__":
 
     local_out = str(os.environ['MYOUT']) # see job.yml for env definition
 
-    kmer_list, pA_list,_ = kmer_parser(fn)
+    kmer_list, pA_list, labels = kmer_parser(fn)
     all_bases = ''.join(list(kmer_list))
 
     global n_type
     n_type = None
-    if 'T' in all_bases and 'U' in all_bases:
+    if 'T' in all_bases and 'u' in all_bases:
         n_type = 'DNA_RNA'
-    elif 'T' in all_bases and 'U' not in all_bases:
+    elif 'T' in all_bases and 'u' not in all_bases:
         n_type = 'DNA'
     elif 'T' not in all_bases and 'U'  in all_bases:
         n_type = 'RNA'
 
-    print(n_type)
+    print(n_type, flush=True)
 
 
     if cv:
         
         cv_res = {}
     
-        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=folds, test_sizes=test_splits),total=len(test_splits)):
+        for test_size, kmer_train_mat, kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(cv_folds(kmer_list,pA_list, folds=folds, test_sizes=test_splits, labels=labels),total=len(test_splits)):
             train_size = 1-test_size
     
             key = str(round(train_size,2))+'-'+str(round(test_size,2))
@@ -171,9 +174,12 @@ if __name__ == "__main__":
     if kmer_cv:
         
         kmer_cv_res = {}
-        base_order = ['A','T','C','G'] # order of bases in matrices below
+        if n_type =='DNA':
+            base_order = ['A','T','C','G'] # order of bases in matrices below
+        if n_type == 'RNA':
+            base_order = ['A','U','C','G'] # order of bases in matrices below
     
-        for pos, kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(base_folds(kmer_list,pA_list),total=7):
+        for pos, kmer_train_mat,kmer_test_mat,pA_train_mat,pA_test_mat in tqdm.tqdm(base_folds(kmer_list,pA_list, base_order),total=7):
             key = 'Pos%d'%pos
 
             for i in range(kmer_train_mat.shape[0]):
