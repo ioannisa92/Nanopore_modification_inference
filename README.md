@@ -67,6 +67,11 @@ For example to run the kmer downsample analysis on DNA:
 ```
 python cv_main.py -i ./ont_models/r9.4_180mv_450bps_6mer_DNA.model -cv -o dna_downsample_results.npy
 ```
+and the positional dropout analysis:
+```
+python cv_main.py -i ./ont_models/r9.4_180mv_450bps_6mer_DNA.model -kmer_cv -o dna_posdrop_results.npy
+```
+
 
 ## Reproducing paper results
 The manuscript's results can be reproduced at once by simply running the following code:
