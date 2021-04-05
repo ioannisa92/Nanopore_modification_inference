@@ -24,28 +24,9 @@ _Note: We recommend to make a new environment to run VEGA, eg. using Anaconda:_
 conda create -n vega-test python=3.7.0
 ```
 
-## Getting started
-VEGA needs 2 things to analyze your data:
-
-
-* A single-cell dataset wrapped using the Scanpy package (Wolf et al. 2018)
-* A GMT file specifying the gene module variables (GMVs) and gene membership, eg. from MSigDB
-
-We recommend that the Scanpy Anndata object is preprocessed before passed to VEGA:
-```python
-import scanpy as sc
-adata = sc.read(path)
-sc.pp.normalize_per_cell(adata)
-sc.pp.log1p(adata)
-```
-We also recommend using a subset of highly variable genes (5000-7000). See the [Scanpy documentation](https://scanpy.readthedocs.io/en/stable/index.html) for more information on preprocessing.
-
-
-## Tutorial
-A tutorial is available [here](https://github.com/LucasESBS/vega/blob/main/tutorials/Vega-tutorial.ipynb). It will guide the user through the different steps of the analysis with VEGA.
 
 ## Reproducing paper results
-VEGA manuscript results can be reproduced using [the following code](https://github.com/LucasESBS/vega-reproducibility).
-
-## Manuscript
-VEGA preprint can be found [here](https://www.biorxiv.org/content/10.1101/2020.12.17.423310v1.abstract).
+The manuscript's results can be reproduced by simply running the following code:
+'''
+bash run_all_analysis
+'''
