@@ -1,1 +1,0 @@
-python quantile_analysis.py -i ./ont_models/r9.4_180mv_450bps_6mer_DNA.model -model_fn dna_model -o dna_gscv_quantile_analysis_repeat50times_run1 -gscv_res ./results/DNA_gscv_500combinations_singleNN_results.npy

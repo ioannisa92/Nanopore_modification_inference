@@ -123,6 +123,7 @@ def get_AX_matrix(smiles, Atms, nAtms):
             A, X = get_compound_graph(sm, Atms)
             A_mat_list += [A]
             X_mat_list += [X]
+            
         padded_A_mat = pad_compound_graph(A_mat_list, nAtms)
         padded_X_mat = pad_compound_graph(X_mat_list, nAtms, axis=0)
         
@@ -159,12 +160,16 @@ def get_AX(kmer_list, n_type="DNA", return_smiles=False):
                 "Q": "OP(=O)(O)OCC1OC(N3C=NC2=C(NC)N=CN=C23)CC1", #6mA
                 'K': "OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C(CO)=C2)CC1"} # 5hmC 
 
-    rna_base = {"A": "OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)C(O)C1",
-                "U": "OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1", #U
-                "G": "OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)NC3=O)C(O)C1",
-                "C": "OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)C(O)C1",
-                "Q": "OP(=O)(O)OCC1OC(C2C(=O)NC(=O)NC=2)C(O)C1", #pseudo-I
-                "I": "OP(=O)(O)OCC1OC(N3C=NC2C(=O)NC=NC=23)C(O)C1"} # inosine
+
+    rna_base = {'A':'OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)C(O)C1',
+                'U':'OP(=O)(O)OCC1OC(N2C(=O)NC(=O)C=C2)C(O)C1',
+                'G':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(N)NC3=O)C(O)C1',
+                'C':'OP(=O)(O)OCC1OC(N2C(=O)N=C(N)C=C2)C(O)C1',
+                'X':'OP(=O)(O)OCC1OC(N3C=NC2=C(NC)N=CN=C23)C(O)C1', #6mA
+                'Y':'OP(=O)(O)OCC1OC(N3C=NC2=C(N(C)C)N=CN=C23)C(O)C1', #6mmA
+                'Z':'OP(=O)(O)OCC1OC(N2C=NC3=C2N=C(NC)NC3=O)C(O)C1', #2mG
+                'Q':'OP(=O)(O)OCC1OC(C2C(=O)NC(=O)NC=2)C(O)C1', #pseudo-I
+                'I':'OP(=O)(O)OCC1OC(N3C=NC2C(=O)NC=NC=23)C(O)C1'} # inosine 
     
     # rna smiles are in lower case
     dna_rna_base = {"A": "OP(=O)(O)OCC1OC(N3C=NC2=C(N)N=CN=C23)CC1",
@@ -194,7 +199,7 @@ def get_AX(kmer_list, n_type="DNA", return_smiles=False):
         smiles = get_kmer_smiles(k, rna_base)
         smiles = [smiles.get(kmer)[0] for kmer in kmer_list]
 
-        A, X = get_AX_matrix(smiles, ['C', 'N', 'O', 'P'], 116)
+        A, X = get_AX_matrix(smiles, ['C', 'N', 'O', 'P'], 121)
 
     elif n_type == 'DNA_RNA':
         #smiles = []
@@ -211,7 +216,7 @@ def get_AX(kmer_list, n_type="DNA", return_smiles=False):
         #for kmer in tqdm(kmer_list):
         #    k = len(kmer)
         #    smiles.append(get_kmer_smiles(k, dna_rna_base).get(kmer)[0])
-        A, X = get_AX_matrix(all_smiles, ['C', 'N', 'O', 'P'], 133) #padding everything to largest DNA kmer
+        A, X = get_AX_matrix(all_smiles, ['C', 'N', 'O', 'P'],133) #padding everything to largest DNA kmer
             
     if return_smiles:
         return A,X,smiles
