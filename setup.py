@@ -1,6 +1,19 @@
-
+import os
 import setuptools
 
+RESDIR="./results/"
+GCNINTERPRET="./gcn_interpret_kmers/"
+MODELDIR="./saved_models/"
+
+if not os.path.exists(RESDIR):
+    os.makedirs(RESDIR)
+    
+if not os.path.exists(GCNINTERPRET):
+    os.makedirs(GCNINTERPRET)
+    
+if not os.path.exists(MODELDIR):
+    os.makedirs(MODELDIR)
+    
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
