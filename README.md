@@ -101,6 +101,17 @@ and the base-pair dropout analysis:
 python exclude_bases.py -i ./ont_models/r9.4_180mv_450bps_6mer_DNA.model -o dna_exclude_basepairs_results.npy -n_type $3 'DNA' -base_pair_exclude
 ```
 
+## Modification prediction analysis
+To train the model on only canonical kmers, and predict on all possible M (methylated C) modified kmers run the following line:
+```
+python dna_mod_pred.py -i  ./ont_models/r9.4_180mv_450bps_6mer_DNA.model -model_fn dna_model -o dna_mod_pred_50repeat_results.npy
+```
+
+To train the model on canonical and fractions of M containing kmers, and then predict all possible M modified kmers run the following line:
+```
+python dna_mod_trainpred.py -i ./ont_models/r9.4_180mv_450bps_6mer_DNA.model  -o dna_mod_trainpred_results_50fold.npy
+```
+
 ## Reproducing paper results
 The manuscript's results can be reproduced at once by simply running the following code:
 ```
