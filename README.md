@@ -72,6 +72,34 @@ and the positional dropout analysis:
 python cv_main.py -i ./ont_models/r9.4_180mv_450bps_6mer_DNA.model -kmer_cv -o dna_posdrop_results.npy
 ```
 
+The `exclude_bases.py` script runs 2 & 4:
+```
+usage: exclude_bases.py [-h] [-i FILE] [-base_pair_exclude] [-base_exclude]
+                        [-o OUT] -n_type NTYPE
+
+Run base-pair specific dropout cross validation
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i FILE, --FILE FILE  kmer file with pA measurement
+  -base_pair_exclude, --PAIRS
+                        MODE: pairs of pases will be excluded
+  -base_exclude, --SOLO
+                        MODE: each of the four bases will be removed from
+                        training
+  -o OUT, --OUT OUT     Full path for .npy file where results are saved
+  -n_type NTYPE, --NTYPE NTYPE
+                        Type of nucleotide examined: DNA or RNA
+```
+
+For example to run the base dropout analysis on DNA:
+```
+python exclude_bases.py -i ./ont_models/r9.4_180mv_450bps_6mer_DNA.model -o dna_exclude_base_results.npy -n_type $3 'DNA' -base_exclude
+```
+and the base-pair dropout analysis:
+```
+python exclude_bases.py -i ./ont_models/r9.4_180mv_450bps_6mer_DNA.model -o dna_exclude_basepairs_results.npy -n_type $3 'DNA' -base_pair_exclude
+```
 
 ## Reproducing paper results
 The manuscript's results can be reproduced at once by simply running the following code:
