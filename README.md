@@ -27,6 +27,6 @@ conda create -n vega-test python=3.7.0
 
 ## Reproducing paper results
 The manuscript's results can be reproduced by simply running the following code:
-'''
+```
 bash run_all_analysis
-'''
+```
