@@ -15,7 +15,6 @@ Follow the steps bellow to install and replicate our results:
 conda create -n ndmi_reproduce python=3.6.0
 git clone https://github.com/ioannisa92/Nanopore_modification_inference.git
 python setup.py install
-
 ```
 
 ## Reproducing paper results
