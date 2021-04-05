@@ -4,7 +4,7 @@
 
 ## Introduction
 We develop a model that associates chemical information on nanopore kmer models with their mean pA value. We showcase that the model can 
-chemical information in specific contexs which can be transferred to identify _de_novo_ kmer modifications. Our model is implemented with keras.
+learn chemical information in specific contexts which can be transferred to identify _de_novo_ kmer modifications. Our model is implemented with keras.
 
 ## Installation
 Our model runs with python3. We recommend to use a recent version of python3 (eg. python>=3.6). 
