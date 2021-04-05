@@ -14,15 +14,14 @@ from keras import backend as K
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
-from modules.utils import aws_upload
 from sklearn.model_selection import ShuffleSplit
 
 if __name__ == "__main__":
     ########----------------------Command line arguments--------------------##########
-    parser = argparse.ArgumentParser(description="Run base-pair specific dropout cross validation")
+    parser = argparse.ArgumentParser(description="Train model on canonical only, and with increasing percentage of random modified kmers. Trained models are the applied on modified kmers to determine generalibility of the model")
     parser.add_argument('-i', '--FILE', default=None, type=str, required=False, help='kmer file with pA measurement')
-    parser.add_argument('-model_fn', '--MODELFN', default="ndmi_model", type=str, required=False, help='name of model. To be used for saving the model and the weights')
-    parser.add_argument('-o', '--RESULTS', type=str, default='out', required=False, help='Filename of results file')
+
+    parser.add_argument('-o', '--RESULTS', type=str, default='out.npy', required=False, help='Filename of results file')
     args=parser.parse_args()
     ########----------------------Command line arguments--------------------##########
 
@@ -110,7 +109,7 @@ if __name__ == "__main__":
             if n_type=="DNA":
                 model = initialize_model(X_train, gcn_filters_train, n_gcn=4, n_cnn=3, kernal_size_cnn=10, n_dense=10, dropout=0.1)
             elif n_type=="RNA":
-                model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=5, kernal_size_cnn=4, n_dense=5, dropout=0.1)
+                model = initialize_model(X_train, gcn_filters_train, n_gcn=1, n_cnn=5, kernal_size_cnn=4, n_dense=10, dropout=0.1)
             model.compile(loss='mean_squared_error', optimizer=Adam())
 
             callbacks = [EarlyStopping(monitor='loss', min_delta=0.01, patience=10, verbose=1, mode='auto', baseline=None, restore_best_weights=False)]
@@ -137,5 +136,4 @@ if __name__ == "__main__":
             K.clear_session()
     
              
-    np.save('.'+local_out+'%s.npy'%(res_fn), res_dict)
-    aws_upload('.'+local_out+'%s.npy'%(res_fn))
+    np.save('.'+local_out+res_fn, res_dict)

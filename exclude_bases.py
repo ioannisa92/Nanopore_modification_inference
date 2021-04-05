@@ -107,12 +107,8 @@ def main():
     pairs = args.PAIRS
     solo = args.SOLO
     n_type = args.NTYPE
-    #n_type = None
-    #if 'RNA' in fn or 'rna' in fn:
-    #    n_type='RNA'
-    #else:
-    #    n_type="DNA"
 
+    local_out = './results/'
 
     #fn = "./ont_models/r9.4_180mv_450bps_6mer_DNA.model"
     #fn = "./ont_models/r9.4_180mv_70bps_5mer_RNA.model"
@@ -161,7 +157,6 @@ def main():
                 new_res_dict[base_pair][key] = list(res_dict[base_pair][key])
 
 
-        local_out = str(os.environ['MYOUT']) # see job.yml for env definition
         np.save('.'+local_out+out, new_res_dict) #this will go to /results/
     if solo:
         if n_type == "DNA":
@@ -212,7 +207,6 @@ def main():
                 new_res_dict[base][key] = list(res_dict[base][key])
 
 
-        local_out = str(os.environ['MYOUT']) # see job.yml for env definition
         np.save('.'+local_out+out, new_res_dict) #this will go to /results/
 
 if __name__ == "__main__":

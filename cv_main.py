@@ -95,15 +95,17 @@ def fold_training(kmer_train,
 if __name__ == "__main__":
 
     ########----------------------Command line arguments--------------------##########
-    parser = argparse.ArgumentParser(description="Script takes in a kmer and pA measurement file. The user can select between random cross validation, or targeted cross validation, where each based is hidden from each position of the kmer in training. Script saves cross validation resutls as a .npy file")
+    parser = argparse.ArgumentParser(description="Script takes in a kmer and pA measurement file. The user can select between random cross validation, or targeted cross validation, where each based is hidden from each position of the kmer in training. Script saves cross validation results as a .npy file")
 
     parser.add_argument('-i', '--FILE', default=None, type=str, required=False, help='kmer file with pA measurement')
     parser.add_argument('-cv', '--CV', required=False, action='store_true',help='MODE: Random CV splits of variable size')
-    parser.add_argument('-kmer_cv', '--KMERCV', required=False, action='store_true',help='MODE: CV splits based on position of base')
-    parser.add_argument('-test_splits', '--SPLITS', nargs='+',type=float, required=False, default = np.arange(0.05,1,0.05), help='Test splits to run k-fold cross validation over')
-    parser.add_argument('-k', '--FOLDS', type=int, default=50, required=False, help='K for fold numbers in cross validation')
+    parser.add_argument('-k', '--FOLDS', type=int, default=50, required=False, help='K for fold numbers in cross validation: default=50')
     parser.add_argument('-o', '--OUT', default="out.npy", type=str, required=False, help='Full path for .npy file where results are saved')
     parser.add_argument('-v', '--VERBOSITY', default=0, type=int, required=False, help='Verbosity of model. Other than zero, loss per batch per epoch is printed. Default is 0, meaning nothing is printed')
+    
+    parser.add_argument('-kmer_cv', '--KMERCV', required=False, action='store_true',help='MODE: Position-based dropout of each base')
+    parser.add_argument('-test_splits', '--SPLITS', nargs='+',type=float, required=False, default = np.arange(0.05,1,0.05), help='Test splits to run k-fold cross validation over: default = np.arange(0.05,1,0.05)')
+    
     args=parser.parse_args()
     ########----------------------Command line arguments--------------------########## 
     
@@ -119,7 +121,7 @@ if __name__ == "__main__":
     global verbosity
     verbosity = args.VERBOSITY  
 
-    local_out = str(os.environ['MYOUT']) # see job.yml for env definition
+    local_out = './results/'
 
     kmer_list, pA_list, labels = kmer_parser(fn)
     all_bases = ''.join(list(kmer_list))

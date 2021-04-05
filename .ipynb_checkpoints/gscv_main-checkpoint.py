@@ -6,7 +6,6 @@ import os
 import numpy as np
 import argparse
 from modules.cv_utils import GPUGSCV, kmer_parser
-from modules.utils import aws_upload
 
 def main():
     ########----------------------Command line arguments--------------------##########
@@ -18,8 +17,7 @@ def main():
     
     fn = args.FILE
     k = args.FOLDS
-    local_out = str(os.environ['MYOUT']) # see job.yml for env definition
-
+    local_out = './results/'
     
     #fn = "./ont_models/r9.4_180mv_450bps_6mer_DNA.model"
     #fn = "./ont_models/r9.4_180mv_70bps_5mer_RNA.model"
@@ -58,7 +56,7 @@ def main():
     except:
         n_gpus = 10
     
-    gscv = GPUGSCV(initialize_model, param_dict, cv=k, n_gpus=n_gpus,res_fn='%s_gscv_200combinations_singleNN_results.npy'%n_type, n_type=n_type)
+    gscv = GPUGSCV(initialize_model, param_dict, cv=k, n_gpus=n_gpus,res_fn='%s_gscv_results.npy'%n_type, n_type=n_type)
 
     gscv.fit(kmer_list, pA_list, labels=label_list)
     best_params = gscv.best_params
@@ -69,9 +67,6 @@ def main():
 
     np.save('.'+local_out+'%s_best_params.npy'%(n_type.lower()), best_params) #this will go to /results/
     np.save('.'+local_out+'%s_gscv_results.npy'%(n_type.lower()), cv_results)
-
-    aws_upload('.'+local_out+'%s_best_params.npy'%(n_type.lower()))
-    aws_upload('.'+local_out+'%s_gscv_results.npy'%(n_type.lower()))
 
 if __name__ == "__main__":
     main() 
