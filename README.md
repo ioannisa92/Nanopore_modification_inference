@@ -9,19 +9,14 @@ learn chemical information in specific contexts which can be transferred to iden
 ## Installation
 Our model runs with python3. We recommend to use a recent version of python3 (eg. python>=3.6). \
 We recommend using conda to create a virtual environment. \
-Follow the following steps to install and replicate our results:
+Follow the steps bellow to install and replicate our results:
 
-```bash
-git clone https://github.com/ioannisa92/Nanopore_modification_inference.git
-```
-Then run in the VEGA repository:
 ```
 conda create -n ndmi_reproduce python=3.6.0
-
+git clone https://github.com/ioannisa92/Nanopore_modification_inference.git
 python setup.py install
 
 ```
-
 
 ## Reproducing paper results
 The manuscript's results can be reproduced by simply running the following code:
