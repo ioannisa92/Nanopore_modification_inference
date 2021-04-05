@@ -18,10 +18,10 @@ python setup.py install
 ```
 ## To run our multi-GPU enabled GridSearch:
 We have developed our own multi-GPU enables grid search with cross validation. \
-Each parameter combination can be run on a single gpu, thereby accelerating the search for the architecture. \
+Each parameter combination can be run on a single gpu, thereby accelerating the search for the architecture. 
 
 The following line of code accepts a kmer model (`-i`) table and the number of cross validation folds to be run (`-k`). \
-The optimal parameter set is determined by the parameter set that achieves the best average RMSE across all folds. \
+The optimal parameter set is determined by the parameter set that achieves the best average RMSE across all folds. 
 ```
 python gscv_main.py -i ./ont_models/r9.4_180mv_70bps_5mer_5to3_RNA.model -k 10
 ```
