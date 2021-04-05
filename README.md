@@ -15,18 +15,16 @@ Follow the following steps to install and replicate our results:
 git clone https://github.com/ioannisa92/Nanopore_modification_inference.git
 ```
 Then run in the VEGA repository:
-```bash
-python setup.py install
 ```
+conda create -n ndmi_reproduce python=3.6.0
 
-_Note: We recommend to make a new environment to run VEGA, eg. using Anaconda:_
-```bash
-conda create -n vega-test python=3.7.0
+python setup.py install
+
 ```
 
 
 ## Reproducing paper results
 The manuscript's results can be reproduced by simply running the following code:
 ```
-bash run_all_analysis
+bash run_all_analysis.sh
 ```
