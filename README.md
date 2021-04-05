@@ -1,5 +1,5 @@
 # Nanopore modification inference
-### (Towards Inferring Nanopore Sequencing Ionic Currents from Nucleotide Chemical Structures)[https://www.biorxiv.org/content/10.1101/2020.11.30.404947v1.abstract]
+### [Towards Inferring Nanopore Sequencing Ionic Currents from Nucleotide Chemical Structures](https://www.biorxiv.org/content/10.1101/2020.11.30.404947v1.abstract)
 
 
 ## Introduction
