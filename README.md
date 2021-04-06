@@ -12,7 +12,8 @@ We recommend using conda to create a virtual environment. \
 Follow the steps bellow to install and replicate our results:
 
 ```
-conda create -n ndmi_reproduce python=3.6.0
+conda create -n ndmi_reproduce python=3.6
+conda activate ndmi_reproduce
 git clone https://github.com/ioannisa92/Nanopore_modification_inference.git
 python setup.py install
 ```
