@@ -19,7 +19,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 
 required = ['keras==2.3.1',
-            'numpy==1.16.1',
+            'numpy==1.22.0',
             'boto3==1.9.239',
             'sklearn',
             'scipy==1.3.2',
