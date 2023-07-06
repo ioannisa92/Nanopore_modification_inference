@@ -22,7 +22,7 @@ required = ['keras==2.3.1',
             'numpy==1.16.1',
             'boto3==1.9.239',
             'sklearn',
-            'scipy==1.3.2',
+            'scipy==1.10.0',
             'tqdm==4.38.0',
             'matplotlib==3.0.3',
             'multiprocess']
